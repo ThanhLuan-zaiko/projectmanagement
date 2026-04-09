@@ -186,31 +186,37 @@ function Invoke-WslDocker {
 function Invoke-CqlCommand {
     param(
         [Parameter(Mandatory)][string]$CQL,
-        [switch]$IgnoreError
+        [switch]$IgnoreError,
+        [switch]$NoKeyspace
     )
-    
+
     Write-Debug-Log "Executing CQL: $CQL"
-    
-    # Write CQL to temp file, then pipe to cqlsh via WSL
+
+    # Write CQL to temp file and use -f flag for file execution
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
         $CQL | Out-File -FilePath $tempFile -Encoding ascii -NoNewline
-        
+
         # Convert Windows path to WSL path
         $wslPath = $tempFile -replace '\\', '/'
         $wslPath = $wslPath -replace '^([A-Z]):', '/mnt/$1'
         $wslPath = $wslPath.ToLower()
-        
-        $command = "docker exec -i $($script:Config.ContainerName) cqlsh < $wslPath"
+
+        if ($NoKeyspace) {
+            $command = "docker exec $($script:Config.ContainerName) cqlsh -f $wslPath"
+        } else {
+            $command = "docker exec $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace) -f $wslPath"
+        }
+
         $output = wsl bash -c $command 2>&1
         $exitCode = $LASTEXITCODE
-        
+
         Write-Debug-Log "CQL exit code: $exitCode"
         Write-Debug-Log "CQL output: $($output -join ' ')"
-        
+
         # Check for syntax errors in output
         $hasError = $output -match 'SyntaxException|ServerError|ConnectionException|no viable alternative'
-        
+
         if ($exitCode -ne 0 -or $hasError) {
             if (-not $IgnoreError) {
                 Write-Log "CQL command failed" -Level 'ERROR'
@@ -219,7 +225,7 @@ function Invoke-CqlCommand {
                 return $null
             }
         }
-        
+
         return $output
     } finally {
         if (Test-Path $tempFile) {
@@ -461,91 +467,87 @@ function Invoke-Reset {
     # Step 1: Drop keyspace
     Write-Log "Dropping keyspace '$($script:Config.Keyspace)'..." -Level 'INFO'
     $dropCQL = "DROP KEYSPACE IF EXISTS $($script:Config.Keyspace);"
-    $result = Invoke-CqlCommand -CQL $dropCQL -IgnoreError
-    
-    # DROP returns empty output on success, null means error
+    Invoke-CqlCommand -CQL $dropCQL -IgnoreError -NoKeyspace
+
     # Check if keyspace actually dropped
-    $keyspaces = Invoke-CqlCommand -CQL "DESCRIBE KEYSPACES;" -IgnoreError
+    $keyspaces = Invoke-CqlCommand -CQL "DESCRIBE KEYSPACES;" -IgnoreError -NoKeyspace
     $stillExists = $keyspaces -match $script:Config.Keyspace
-    
+
     if ($stillExists) {
         Write-Log "Failed to drop keyspace" -Level 'ERROR'
-        Write-Debug-Log "DROP result: $result"
         exit 1
     }
     Write-Log "Keyspace dropped" -Level 'SUCCESS'
-    
+
     # Step 2: Recreate keyspace
     Write-Log "Creating keyspace '$($script:Config.Keyspace)'..." -Level 'INFO'
     $createCQL = "CREATE KEYSPACE IF NOT EXISTS $($script:Config.Keyspace) WITH replication = $($script:Config.Replication);"
-    $result = Invoke-CqlCommand -CQL $createCQL
-    
-    if ($result) {
-        Write-Log "Keyspace '$($script:Config.Keyspace)' is ready" -Level 'SUCCESS'
-        
-        # Load schema
-        Invoke-LoadSchema
-        
-        Write-Log "=== RESET COMPLETE ===" -Level 'SUCCESS'
-        Write-Log "Keyspace '$($script:Config.Keyspace)' is fresh and ready" -Level 'SUCCESS'
-    } else {
-        Write-Log "Keyspace creation may have failed" -Level 'WARN'
-        Write-Log "Run -Setup to retry" -Level 'WARN'
-    }
+    Invoke-CqlCommand -CQL $createCQL -IgnoreError -NoKeyspace
+
+    Write-Log "Keyspace '$($script:Config.Keyspace)' is ready" -Level 'SUCCESS'
+
+    # Load schema
+    Invoke-LoadSchema
+
+    Write-Log "=== RESET COMPLETE ===" -Level 'SUCCESS'
+    Write-Log "Keyspace '$($script:Config.Keyspace)' is fresh and ready" -Level 'SUCCESS'
 }
 
 function Invoke-LoadSchema {
     $schemaPath = Join-Path $PSScriptRoot "schema.cql"
-    
+
     if (-not (Test-Path $schemaPath)) {
         Write-Log "Schema file not found at: $schemaPath" -Level 'WARN'
         Write-Log "Skipping schema load" -Level 'INFO'
         return
     }
-    
+
     Write-Log "Loading schema from: schema.cql" -Level 'INFO'
-    $schemaContent = Get-Content $schemaPath -Raw
-    
-    if ([string]::IsNullOrWhiteSpace($schemaContent)) {
+
+    # Read entire file and strip comments
+    $rawContent = Get-Content $schemaPath -Raw
+
+    if ([string]::IsNullOrWhiteSpace($rawContent)) {
         Write-Log "Schema file is empty" -Level 'WARN'
         return
     }
-    
-    # Split by semicolons to get individual statements
-    $statements = $schemaContent -split ';' | Where-Object { $_ -match '\S' -and $_ -notmatch '^\s*--' }
-    
-    if ($statements.Count -eq 0) {
+
+    # Remove comments but preserve string literals containing --
+    # Only match comments that are: at start of line, or preceded by whitespace/semicolon
+    $cleanContent = $rawContent -replace '(?m)(^|\s+)--[^\n]*', '$1'
+    $cleanContent = $cleanContent -replace '(?i)\s*USE\s+\w+\s*;', ''
+
+    if ([string]::IsNullOrWhiteSpace($cleanContent)) {
         Write-Log "No valid CQL statements found in schema file" -Level 'WARN'
         return
     }
-    
-    Write-Log "Found $($statements.Count) schema statements to execute..." -Level 'INFO'
-    
-    $successCount = 0
-    $errorCount = 0
-    
-    foreach ($stmt in $statements) {
-        $stmt = $stmt.Trim()
-        if ([string]::IsNullOrWhiteSpace($stmt)) { continue }
-        
-        # Skip pure comment lines
-        if ($stmt -match '^\s*--') { continue }
-        
-        # Execute statement
-        $result = Invoke-CqlCommand -CQL $stmt -IgnoreError
-        if ($result -ne $null) {
-            $successCount++
-            Write-Debug-Log "OK: $($stmt.Substring(0, [Math]::Min(50, $stmt.Length)))..."
+
+    # Count statements for reporting
+    $statements = $cleanContent -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '\S' }
+
+    # Write to Windows temp file and convert to WSL path
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $cleanContent | Out-File -FilePath $tempFile -Encoding ascii -NoNewline
+        $wslPath = $tempFile -replace '\\', '/'
+        $wslPath = $wslPath -replace '^([A-Z]):', '/mnt/$1'
+        $wslPath = $wslPath.ToLower()
+
+        # Execute entire schema file at once via stdin pipe
+        $command = "docker exec -i $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace) < $wslPath"
+        $output = wsl bash -c $command 2>&1
+        $exitCode = $LASTEXITCODE
+
+        if ($exitCode -ne 0 -or ($output -match 'SyntaxException|ServerError|ConnectionException')) {
+            Write-Log "Schema load failed!" -Level 'ERROR'
+            Write-Log "Error: $($output -join ' ')" -Level 'ERROR'
         } else {
-            $errorCount++
-            Write-Log "Failed: $($stmt.Substring(0, [Math]::Min(50, $stmt.Length)))..." -Level 'ERROR'
+            Write-Log "Schema loaded successfully! ($($statements.Count) tables/indexes created)" -Level 'SUCCESS'
         }
-    }
-    
-    if ($errorCount -eq 0) {
-        Write-Log "Schema loaded successfully! ($successCount tables/indexes created)" -Level 'SUCCESS'
-    } else {
-        Write-Log "Schema loaded with errors: $successCount succeeded, $errorCount failed" -Level 'WARN'
+    } finally {
+        if (Test-Path $tempFile) {
+            Remove-Item $tempFile -Force
+        }
     }
 }
 

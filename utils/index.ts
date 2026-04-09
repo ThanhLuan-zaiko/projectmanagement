@@ -1,5 +1,8 @@
 // Utility functions
 
+export * from './password';
+export * from './uuid';
+
 export function formatDate(date: Date | string, format: string = 'DD/MM/YYYY'): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   const day = String(d.getDate()).padStart(2, '0');
@@ -16,9 +19,7 @@ export function formatDate(date: Date | string, format: string = 'DD/MM/YYYY'): 
     .replace('mm', minutes);
 }
 
-export function generateId(): string {
-  return crypto.randomUUID();
-}
+export { generateUUIDv7 as generateId } from './uuid';
 
 export function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');

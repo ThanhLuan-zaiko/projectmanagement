@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS work_items (
     actual_hours DECIMAL,
     parent_work_item_id UUID,
     tags SET<TEXT>,
-    attachments SET<TEXT>,
+    attachments LIST<TEXT>,
     PRIMARY KEY (project_id, work_item_id)
 ) WITH CLUSTERING ORDER BY (work_item_id ASC);
 

@@ -104,3 +104,5 @@ next-env.d.ts
 *.tar.gz
 *.rar
 
+*.md
+!/README.md
