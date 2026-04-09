@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS sessions_by_token (
     PRIMARY KEY (token_hash)
 );
 
+-- Session lookup by refresh token (for session refresh)
+CREATE TABLE IF NOT EXISTS sessions_by_refresh_token (
+    refresh_token_hash TEXT,
+    session_id UUID,
+    user_id UUID,
+    expires_at TIMESTAMP,
+    is_revoked BOOLEAN,
+    PRIMARY KEY (refresh_token_hash)
+);
+
 -- Password reset tokens
 CREATE TABLE IF NOT EXISTS password_resets (
     email TEXT,
@@ -71,6 +81,14 @@ CREATE TABLE IF NOT EXISTS password_resets (
     created_at TIMESTAMP,
     PRIMARY KEY (email, reset_token)
 ) WITH CLUSTERING ORDER BY (reset_token ASC);
+
+-- Rate limiting (DB-backed, prevents RAM overflow)
+CREATE TABLE IF NOT EXISTS rate_limits (
+    rate_key TEXT,
+    window_start TIMESTAMP,
+    request_count INT,
+    PRIMARY KEY (rate_key)
+);
 
 -- ============================================================
 -- PROJECT METADATA
