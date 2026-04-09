@@ -192,46 +192,37 @@ function Invoke-CqlCommand {
 
     Write-Debug-Log "Executing CQL: $CQL"
 
-    # Write CQL to temp file and use -f flag for file execution
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    try {
-        $CQL | Out-File -FilePath $tempFile -Encoding ascii -NoNewline
-
-        # Convert Windows path to WSL path
-        $wslPath = $tempFile -replace '\\', '/'
-        $wslPath = $wslPath -replace '^([A-Z]):', '/mnt/$1'
-        $wslPath = $wslPath.ToLower()
-
-        if ($NoKeyspace) {
-            $command = "docker exec $($script:Config.ContainerName) cqlsh -f $wslPath"
-        } else {
-            $command = "docker exec $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace) -f $wslPath"
-        }
-
-        $output = wsl bash -c $command 2>&1
-        $exitCode = $LASTEXITCODE
-
-        Write-Debug-Log "CQL exit code: $exitCode"
-        Write-Debug-Log "CQL output: $($output -join ' ')"
-
-        # Check for syntax errors in output
-        $hasError = $output -match 'SyntaxException|ServerError|ConnectionException|no viable alternative'
-
-        if ($exitCode -ne 0 -or $hasError) {
-            if (-not $IgnoreError) {
-                Write-Log "CQL command failed" -Level 'ERROR'
-                Write-Log "CQL: $CQL" -Level 'ERROR'
-                Write-Log "Error: $($output -join ' ')" -Level 'ERROR'
-                return $null
-            }
-        }
-
-        return $output
-    } finally {
-        if (Test-Path $tempFile) {
-            Remove-Item $tempFile -Force
-        }
+    # Build base command
+    if ($NoKeyspace) {
+        $baseCmd = "docker exec -i $($script:Config.ContainerName) cqlsh"
+    } else {
+        $baseCmd = "docker exec -i $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace)"
     }
+
+    # Escape single quotes for shell
+    $escapedCQL = $CQL -replace "'", "'\\''"
+
+    # Use bash -c with heredoc to pass CQL via stdin
+    $cmd = "$baseCmd <<< '$escapedCQL'"
+
+    $output = wsl bash -c $cmd 2>&1
+    $exitCode = $LASTEXITCODE
+
+    Write-Debug-Log "CQL exit code: $exitCode"
+
+    # Check for errors
+    $hasError = $output -match 'SyntaxException|ServerError|ConnectionException|no viable alternative'
+
+    if ($exitCode -ne 0 -or $hasError) {
+        if (-not $IgnoreError) {
+            Write-Log "CQL command failed" -Level 'ERROR'
+            Write-Log "CQL: $($CQL.Substring(0, [Math]::Min(80, $CQL.Length)))..." -Level 'ERROR'
+            Write-Log "Error: $($output -join ' ')" -Level 'ERROR'
+        }
+        return $null
+    }
+
+    return $output
 }
 
 # ============================================================================
@@ -504,45 +495,66 @@ function Invoke-LoadSchema {
 
     Write-Log "Loading schema from: schema.cql" -Level 'INFO'
 
-    # Read entire file and strip comments
-    $rawContent = Get-Content $schemaPath -Raw
+    $schemaContent = Get-Content $schemaPath -Raw
 
-    if ([string]::IsNullOrWhiteSpace($rawContent)) {
+    if ([string]::IsNullOrWhiteSpace($schemaContent)) {
         Write-Log "Schema file is empty" -Level 'WARN'
         return
     }
 
-    # Remove comments but preserve string literals containing --
-    # Only match comments that are: at start of line, or preceded by whitespace/semicolon
-    $cleanContent = $rawContent -replace '(?m)(^|\s+)--[^\n]*', '$1'
-    $cleanContent = $cleanContent -replace '(?i)\s*USE\s+\w+\s*;', ''
+    # Validate schema for common CQL reserved keywords used as column names
+    # Full list: https://cassandra.apache.org/doc/stable/cassandra/cql/index.html#appendixA
+    $reservedKeywords = @('used', 'token', 'type', 'count', 'key', 'index', 'table', 'column', 'primary', 'partition', 'clustering', 'filter', 'allow', 'grant', 'revoke', 'modify', 'authorize', 'describe', 'alter', 'drop', 'create', 'select', 'insert', 'update', 'delete', 'batch', 'truncate', 'apply', 'begin', 'begin', 'consistency', 'serial', 'local', 'each_quorum', 'all', 'quorum', 'one', 'two', 'three', 'local_one', 'any', 'local_quorum')
+    $foundIssues = @()
 
-    if ([string]::IsNullOrWhiteSpace($cleanContent)) {
-        Write-Log "No valid CQL statements found in schema file" -Level 'WARN'
+    foreach ($keyword in $reservedKeywords) {
+        $pattern = "\b$keyword\s+(TEXT|UUID|INT|BIGINT|DECIMAL|BOOLEAN|TIMESTAMP|FLOAT|DOUBLE|SET|LIST|MAP|BLOB|INET|DATE|TIME|DURATION|SMALLINT|TINYINT|VARINT|ASCII|VARCHAR)"
+        $matches = [regex]::Matches($schemaContent, $pattern, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        foreach ($match in $matches) {
+            $lineNum = ($schemaContent.Substring(0, $match.Index).Split("`n").Count)
+            $foundIssues += "Line " + $lineNum + ": Column name '" + $keyword + "' is a CQL reserved keyword"
+        }
+    }
+
+    if ($foundIssues.Count -gt 0) {
+        Write-Log "Schema validation failed!" -Level 'ERROR'
+        foreach ($issue in $foundIssues) {
+            Write-Log "  - $issue" -Level 'ERROR'
+        }
+        Write-Log " " -Level 'ERROR'
+        Write-Log "Reserved keywords cannot be used as column names. Please rename them (e.g., 'used' -> 'is_used', 'token' -> 'reset_token')." -Level 'ERROR'
         return
     }
 
-    # Count statements for reporting
-    $statements = $cleanContent -split ';' | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '\S' }
+    # Count CREATE TABLE and CREATE INDEX statements for reporting
+    $tableCount = ([regex]::Matches($schemaContent, '(?i)CREATE\s+TABLE')).Count
+    $indexCount = ([regex]::Matches($schemaContent, '(?i)CREATE\s+INDEX')).Count
+    $totalObjects = $tableCount + $indexCount
 
-    # Write to Windows temp file and convert to WSL path
+    Write-Log "Found $tableCount tables and $indexCount indexes ($totalObjects objects total)..." -Level 'INFO'
+
+    # Pipe raw schema file directly to cqlsh (cqlsh handles comments natively)
     $tempFile = [System.IO.Path]::GetTempFileName()
     try {
-        $cleanContent | Out-File -FilePath $tempFile -Encoding ascii -NoNewline
-        $wslPath = $tempFile -replace '\\', '/'
-        $wslPath = $wslPath -replace '^([A-Z]):', '/mnt/$1'
-        $wslPath = $wslPath.ToLower()
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($tempFile, $schemaContent, $utf8NoBom)
 
-        # Execute entire schema file at once via stdin pipe
-        $command = "docker exec -i $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace) < $wslPath"
-        $output = wsl bash -c $command 2>&1
+        $output = Get-Content $tempFile -Raw | wsl docker exec -i $($script:Config.ContainerName) cqlsh -k $($script:Config.Keyspace) 2>&1
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -ne 0 -or ($output -match 'SyntaxException|ServerError|ConnectionException')) {
+        if ($exitCode -ne 0 -or $output -match 'SyntaxException|ServerError|ConnectionException') {
             Write-Log "Schema load failed!" -Level 'ERROR'
-            Write-Log "Error: $($output -join ' ')" -Level 'ERROR'
+            # Show first 3 error lines
+            $errorLines = $output | Select-String "Exception|Error" | Select-Object -First 3
+            if ($errorLines) {
+                Write-Log "Error: $($errorLines -join ' | ')" -Level 'ERROR'
+            } else {
+                Write-Log "Error: $($output -join ' ')" -Level 'ERROR'
+            }
+            Write-Log " " -Level 'ERROR'
+            Write-Log "Tip: Check for reserved keywords used as column names." -Level 'WARN'
         } else {
-            Write-Log "Schema loaded successfully! ($($statements.Count) tables/indexes created)" -Level 'SUCCESS'
+            Write-Log "Schema loaded successfully! ($tableCount tables, $indexCount indexes)" -Level 'SUCCESS'
         }
     } finally {
         if (Test-Path $tempFile) {

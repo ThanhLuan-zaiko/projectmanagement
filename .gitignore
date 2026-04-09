@@ -106,3 +106,7 @@ next-env.d.ts
 
 *.md
 !/README.md
+
+# Agent
+.agent
+.qwen

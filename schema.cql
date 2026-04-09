@@ -64,13 +64,13 @@ CREATE TABLE IF NOT EXISTS sessions_by_token (
 -- Password reset tokens
 CREATE TABLE IF NOT EXISTS password_resets (
     email TEXT,
-    token TEXT,
+    reset_token TEXT,
     user_id UUID,
     expires_at TIMESTAMP,
-    used BOOLEAN,
+    is_used BOOLEAN,
     created_at TIMESTAMP,
-    PRIMARY KEY (email, token)
-) WITH CLUSTERING ORDER BY (token ASC);
+    PRIMARY KEY (email, reset_token)
+) WITH CLUSTERING ORDER BY (reset_token ASC);
 
 -- ============================================================
 -- PROJECT METADATA
