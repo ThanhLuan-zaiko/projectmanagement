@@ -26,6 +26,47 @@ export class WorkItemRepository extends BaseRepository<WorkItem> {
   protected tableName = 'work_items';
   protected primaryKey = 'work_item_id';
 
+  // Override update to include composite primary key (project_id, work_item_id)
+  async update(id: string, data: Partial<WorkItem>, options?: any): Promise<WorkItem | null> {
+    // 1. Extract project_id to avoid putting it in SET clause
+    const { project_id, ...restData } = data;
+    const projectId = project_id || (options?.params && options.params[0]);
+    
+    if (!projectId) {
+      throw new Error('project_id is required to update work items');
+    }
+
+    // 2. Prepare WHERE clause
+    const whereClause = 'project_id = ? AND work_item_id = ?';
+    const whereParams = [projectId, id];
+
+    // 3. Build query using restData (excluding project_id)
+    const { query, params } = require('@/config').update(
+      this.tableName,
+      { ...restData, updated_at: new Date() } as Record<string, unknown>,
+      whereClause,
+      whereParams
+    );
+
+    await db.execute(query, { ...options, params });
+    return await this.findById(id, { params: [projectId] });
+  }
+
+  // Override delete to include composite primary key
+  async delete(id: string, options?: any): Promise<boolean> {
+    const projectId = options?.params && options.params[0];
+    
+    if (!projectId) {
+      throw new Error('project_id is required to delete work items');
+    }
+
+    const query = 'DELETE FROM work_items WHERE project_id = ? AND work_item_id = ?';
+    const params = [projectId, id];
+
+    await db.execute(query, { ...options, params });
+    return true;
+  }
+
   // Find work items by project
   async findByProjectId(projectId: string, options?: { limit?: number }): Promise<WorkItem[]> {
     const limit = options?.limit ?? 100;

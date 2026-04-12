@@ -69,13 +69,39 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     // Prepare update data
     const updateData: Record<string, unknown> = {};
-    
+
+    // Must include project_id for composite primary key
+    updateData.project_id = workItem.project_id;
+
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.work_type !== undefined) updateData.work_type = body.work_type;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.priority !== undefined) updateData.priority = body.priority;
-    if (body.assigned_to !== undefined) updateData.assigned_to = body.assigned_to;
+    
+    // Handle UUID fields: convert empty strings/null to null to avoid ScyllaDB errors
+    if (body.assigned_to !== undefined) {
+      if (body.assigned_to === null || String(body.assigned_to).trim() === '') {
+        updateData.assigned_to = null;
+      } else {
+        updateData.assigned_to = String(body.assigned_to).trim();
+      }
+    }
+    if (body.created_by !== undefined) {
+      if (body.created_by === null || String(body.created_by).trim() === '') {
+        updateData.created_by = null;
+      } else {
+        updateData.created_by = String(body.created_by).trim();
+      }
+    }
+    if (body.parent_work_item_id !== undefined) {
+      if (body.parent_work_item_id === null || String(body.parent_work_item_id).trim() === '') {
+        updateData.parent_work_item_id = null;
+      } else {
+        updateData.parent_work_item_id = String(body.parent_work_item_id).trim();
+      }
+    }
+
     if (body.due_date !== undefined) updateData.due_date = body.due_date;
     if (body.estimated_hours !== undefined) updateData.estimated_hours = body.estimated_hours;
     if (body.actual_hours !== undefined) updateData.actual_hours = body.actual_hours;

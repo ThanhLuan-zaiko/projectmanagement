@@ -82,7 +82,12 @@ export function useAuth() {
       }
     }
 
-    getUser();
+    // Use requestIdleCallback or setTimeout to not block rendering
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => getUser());
+    } else {
+      setTimeout(() => getUser(), 0);
+    }
   }, []);
 
   return { user, loading, error };

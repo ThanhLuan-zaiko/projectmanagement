@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
 import DashboardSidebar from './DashboardSidebar';
+import UserMenu from './UserMenu';
+import { useAuth } from '@/hooks/useAuth';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -11,6 +13,25 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, header }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { user } = useAuth();
+
+  // Load collapsed state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved !== null) {
+      setIsSidebarCollapsed(saved === 'true');
+    }
+
+    // Listen for sidebar collapse changes
+    const handleStorageChange = () => {
+      const current = localStorage.getItem('sidebar-collapsed');
+      setIsSidebarCollapsed(current === 'true');
+    };
+
+    window.addEventListener('sidebar-collapse-change', handleStorageChange);
+    return () => window.removeEventListener('sidebar-collapse-change', handleStorageChange);
+  }, []);
 
   // Close mobile menu on resize to desktop
   useEffect(() => {
@@ -60,12 +81,17 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed left-0 top-0 h-screen w-72 z-30">
+      <div className="hidden lg:block fixed left-0 top-0 h-screen z-30">
         <DashboardSidebar variant="desktop" />
       </div>
 
       {/* Main Content */}
-      <div className="lg:ml-72 min-h-screen flex flex-col">
+      <div
+        className={`
+          min-h-screen flex flex-col transition-all duration-300 ease-in-out
+          ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}
+        `}
+      >
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-20 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
           <div className="flex items-center justify-between px-4 py-4">
@@ -75,7 +101,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
             >
               <FiMenu className="w-6 h-6 text-white" />
             </button>
-            
+
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
                 <FiMenu className="w-4 h-4 text-white" />
@@ -83,7 +109,8 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
               <h1 className="text-lg font-bold text-white">Project Management</h1>
             </div>
 
-            <div className="w-10" /> {/* Spacer for centering */}
+            {/* Mobile User Menu */}
+            <UserMenu user={user} />
           </div>
         </header>
 

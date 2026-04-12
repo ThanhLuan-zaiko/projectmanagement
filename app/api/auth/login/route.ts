@@ -154,9 +154,19 @@ async function trackFailedLogin(email: string): Promise<void> {
  */
 async function resetLoginAttempts(email: string): Promise<void> {
   try {
-    await db.execute(
-      'UPDATE users SET login_attempts = 0, locked_until = NULL WHERE email = ? ALLOW FILTERING',
+    // First, get user_id by email (ALLOW FILTERING is needed for SELECT)
+    const userResult = await db.execute(
+      'SELECT user_id FROM users WHERE email = ? ALLOW FILTERING',
       { params: [email] }
+    );
+
+    const user = userResult.rows[0];
+    if (!user) return;
+
+    // Update by user_id (primary key - no ALLOW FILTERING needed)
+    await db.execute(
+      'UPDATE users SET login_attempts = 0, locked_until = NULL WHERE user_id = ?',
+      { params: [user.user_id] }
     );
   } catch (error) {
     console.error('Failed to reset login attempts:', error);

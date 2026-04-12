@@ -1,5 +1,7 @@
-import { FiLoader, FiCheckCircle } from 'react-icons/fi';
+import { FiLoader, FiCheckCircle, FiClipboard, FiList, FiFlag, FiAlertTriangle, FiAlertCircle } from 'react-icons/fi';
 import { WorkItemFormData, WorkItem } from '@/types/work-item';
+import CustomSelect from '@/components/ui/CustomSelect';
+import { StatusBadge, PriorityBadge, TypeBadge } from '@/components/ui/Badges';
 
 interface TaskFormProps {
   formData: WorkItemFormData;
@@ -57,37 +59,37 @@ export default function TaskForm({
           <label className="block text-sm font-medium text-slate-300 mb-2">
             Type <span className="text-red-400">*</span>
           </label>
-          <select
+          <CustomSelect
             name="work_type"
             value={formData.work_type}
             onChange={onChange}
             required
-            className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
-          >
-            <option value="task">Task</option>
-            <option value="subtask">Subtask</option>
-            <option value="milestone">Milestone</option>
-            <option value="bug">Bug</option>
-          </select>
+            options={[
+              { value: 'task', label: 'Task', icon: <FiClipboard className="w-4 h-4" /> },
+              { value: 'subtask', label: 'Subtask', icon: <FiList className="w-4 h-4" /> },
+              { value: 'milestone', label: 'Milestone', icon: <FiFlag className="w-4 h-4" /> },
+              { value: 'bug', label: 'Bug', icon: <FiAlertCircle className="w-4 h-4" /> },
+            ]}
+          />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-2">
             Status <span className="text-red-400">*</span>
           </label>
-          <select
+          <CustomSelect
             name="status"
             value={formData.status}
             onChange={onChange}
             required
-            className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
-          >
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="review">Review</option>
-            <option value="done">Done</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+            options={[
+              { value: 'todo', label: 'To Do' },
+              { value: 'in_progress', label: 'In Progress' },
+              { value: 'review', label: 'Review' },
+              { value: 'done', label: 'Done' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ]}
+          />
         </div>
       </div>
 
@@ -97,18 +99,18 @@ export default function TaskForm({
           <label className="block text-sm font-medium text-slate-300 mb-2">
             Priority <span className="text-red-400">*</span>
           </label>
-          <select
+          <CustomSelect
             name="priority"
             value={formData.priority}
             onChange={onChange}
             required
-            className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
+            options={[
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' },
+              { value: 'urgent', label: 'Urgent', icon: <FiAlertTriangle className="w-4 h-4" /> },
+            ]}
+          />
         </div>
 
         <div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FiX, FiAlertCircle, FiCheckCircle, FiInfo } from 'react-icons/fi';
 
 interface ModalProps {
@@ -35,6 +36,13 @@ export default function Modal({
   validationInfo = [],
   showValidation = false,
 }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -64,7 +72,7 @@ export default function Modal({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const hasValidation = showValidation && (
     validationErrors.length > 0 ||
@@ -72,9 +80,9 @@ export default function Modal({
     validationInfo.length > 0
   );
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-opacity duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-opacity duration-300"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -83,10 +91,10 @@ export default function Modal({
       <div className="relative w-full">
         {/* Glow Effect */}
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-75" />
-        
+
         {/* Modal Content */}
         <div className={`relative bg-slate-800 border border-slate-700 ${sizeClasses[size]} w-full mx-auto rounded-2xl shadow-2xl overflow-hidden`}>
-          
+
           {/* Top Gradient Bar */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
 
@@ -204,4 +212,7 @@ export default function Modal({
       </div>
     </div>
   );
+
+  // Use portal to render modal outside parent stacking context
+  return createPortal(modalContent, document.body);
 }

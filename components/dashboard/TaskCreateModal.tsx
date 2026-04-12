@@ -11,6 +11,7 @@ interface TaskCreateModalProps {
   onSubmit: (e: React.FormEvent) => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   onReset: () => void;
+  validationErrors?: string[];
 }
 
 export default function TaskCreateModal({
@@ -22,6 +23,7 @@ export default function TaskCreateModal({
   onSubmit,
   onChange,
   onReset,
+  validationErrors = [],
 }: TaskCreateModalProps) {
   const handleClose = () => {
     onReset();
@@ -33,6 +35,8 @@ export default function TaskCreateModal({
       isOpen={isOpen}
       onClose={handleClose}
       title={editingItem ? 'Edit Task' : 'Create New Task'}
+      validationErrors={validationErrors}
+      showValidation={validationErrors.length > 0}
     >
       <TaskForm
         formData={formData}

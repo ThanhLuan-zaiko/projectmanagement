@@ -10,7 +10,8 @@ interface TaskListProps {
   onCreateTask: () => void;
   onView: (item: WorkItem) => void;
   onEdit: (item: WorkItem) => void;
-  onDelete: (id: string) => void;
+  onDelete: (item: WorkItem) => void;
+  onRestore: (id: string) => void;
 }
 
 export default function TaskList({
@@ -22,6 +23,7 @@ export default function TaskList({
   onView,
   onEdit,
   onDelete,
+  onRestore,
 }: TaskListProps) {
   if (loading) {
     return (
@@ -67,7 +69,8 @@ export default function TaskList({
             item={item}
             onView={onView}
             onEdit={onEdit}
-            onDelete={onDelete}
+            onDelete={() => onDelete(item)}
+            onRestore={onRestore}
             deletingId={deletingId}
           />
         ))}

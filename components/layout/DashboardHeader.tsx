@@ -1,6 +1,8 @@
 'use client';
 
 import { FiPlus } from 'react-icons/fi';
+import { useAuth } from '@/hooks/useAuth';
+import UserMenu from './UserMenu';
 
 interface DashboardHeaderProps {
   title: string;
@@ -17,8 +19,10 @@ export default function DashboardHeader({
   onAction,
   children,
 }: DashboardHeaderProps) {
+  const { user } = useAuth();
+
   return (
-    <div className="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-xl">
+    <div className="relative border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-xl" style={{ zIndex: 40 }}>
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -27,10 +31,10 @@ export default function DashboardHeader({
               <p className="text-sm sm:text-base text-slate-400">{subtitle}</p>
             )}
           </div>
-          
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-3 relative">
             {children}
-            
+
             {actionLabel && onAction && (
               <button
                 onClick={onAction}
@@ -40,6 +44,11 @@ export default function DashboardHeader({
                 <span>{actionLabel}</span>
               </button>
             )}
+
+            {/* Desktop User Menu */}
+            <div className="hidden lg:block">
+              <UserMenu user={user} />
+            </div>
           </div>
         </div>
       </div>
