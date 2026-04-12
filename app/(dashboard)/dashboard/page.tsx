@@ -2,27 +2,47 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useWorkItems } from '@/hooks/useWorkItems';
-import { useTaskForm } from '@/hooks/useTaskForm';
-import { useTaskActions } from '@/hooks/useTaskActions';
-import { FiLoader, FiAlertCircle, FiClipboard } from 'react-icons/fi';
-import { WorkItem } from '@/types/work-item';
-import { TaskFilters, TaskList, TaskCreateModal, TaskViewModal, DeleteConfirmationModal } from '@/components/dashboard';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { FiLoader, FiAlertCircle, FiClipboard, FiCheckCircle, FiClock, FiAlertTriangle, FiBarChart2 } from 'react-icons/fi';
+import {
+  TaskCreateModal,
+  DashboardKPI,
+  TaskStatusChart,
+  TaskPriorityChart,
+  TaskTrendChart,
+  HoursComparisonChart,
+  ActivityList,
+  UpcomingDeadlines,
+  DashboardTabs,
+  WorkloadByAssigneeChart,
+  TaskTypeDistributionChart,
+  TaskCompletionRateChart,
+  PriorityTrendChart,
+  WeeklyWorkloadChart,
+  StatusFlowChart,
+} from '@/components/dashboard';
 import { DashboardLayout, DashboardHeader } from '@/components/layout';
 
-function TaskSkeleton() {
+function DashboardSkeleton() {
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-xl">
-      <div className="p-6 sm:p-8 space-y-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="animate-pulse">
-            <div className="h-4 bg-slate-700 rounded w-3/4 mb-3" />
-            <div className="h-3 bg-slate-700/50 rounded w-1/2 mb-2" />
-            <div className="flex gap-2">
-              <div className="h-5 bg-slate-700/30 rounded w-16" />
-              <div className="h-5 bg-slate-700/30 rounded w-20" />
-              <div className="h-5 bg-slate-700/30 rounded w-14" />
-            </div>
+    <div className="space-y-6">
+      {/* KPI Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 animate-pulse">
+            <div className="h-4 bg-slate-700 rounded w-1/2 mb-3" />
+            <div className="h-8 bg-slate-700/50 rounded w-3/4 mb-2" />
+            <div className="h-3 bg-slate-700/30 rounded w-1/3" />
+          </div>
+        ))}
+      </div>
+
+      {/* Chart Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 animate-pulse">
+            <div className="h-5 bg-slate-700 rounded w-1/3 mb-4" />
+            <div className="h-64 bg-slate-700/30 rounded" />
           </div>
         ))}
       </div>
@@ -32,64 +52,15 @@ function TaskSkeleton() {
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const [viewingItem, setViewingItem] = useState<WorkItem | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  // Custom hooks - fetch in parallel, don't block on auth
-  const {
-    filteredItems,
-    loading: itemsLoading,
-    hasActiveFilters,
-    fetchWorkItems,
-    updateFilter,
-  } = useWorkItems();
+  // Fetch dashboard stats
+  const { stats, loading: statsLoading } = useDashboardStats();
 
-  // Create a force refresh callback
-  const refreshData = () => fetchWorkItems(true);
-
-  const {
-    formData,
-    editingItem,
-    submitting,
-    validationErrors,
-    setValidationErrors,
-    resetForm,
-    handleSubmit: handleFormSubmit,
-    handleChange,
-    handleEdit,
-  } = useTaskForm(refreshData);
-
-  const {
-    deleting,
-    showDeleteModal,
-    itemToDelete,
-    isDeletingItem,
-    handleDelete,
-    handleRestore,
-    confirmDelete,
-    cancelDelete,
-  } = useTaskActions(refreshData);
-
-  // Handlers
+  // Handler for create task button
   const handleCreate = () => {
-    resetForm();
     setShowCreateModal(true);
   };
-
-  const handleEditWithModal = (item: WorkItem) => {
-    handleEdit(item);
-    setShowCreateModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    const success = await handleFormSubmit(e);
-    if (success) {
-      setShowCreateModal(false);
-    }
-  };
-
-  const handleSoftDelete = () => confirmDelete(false);
-  const handleHardDelete = () => confirmDelete(true);
 
   // Show minimal loading on initial mount (very fast)
   if (authLoading) {
@@ -114,83 +85,158 @@ export default function DashboardPage() {
     <DashboardLayout
       header={
         <DashboardHeader
-          title="Task Management"
-          subtitle="Manage and track your project tasks"
+          title="Dashboard"
+          subtitle="Overview of your project management"
           actionLabel="Create Task"
           onAction={handleCreate}
         />
       }
     >
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-        {/* Filters */}
-        <TaskFilters
-          filters={{
-            searchQuery: '',
-            filterStatus: 'all',
-            filterPriority: 'all',
-            filterType: 'all',
-          }}
-          onSearchChange={(value) => updateFilter('searchQuery', value)}
-          onStatusChange={(value) => updateFilter('filterStatus', value)}
-          onPriorityChange={(value) => updateFilter('filterPriority', value)}
-          onTypeChange={(value) => updateFilter('filterType', value)}
-        />
+        {/* Tab Navigation */}
+        <DashboardTabs />
 
-        {/* Task List with Skeleton Loading */}
-        {itemsLoading ? (
-          <TaskSkeleton />
-        ) : (
-          <TaskList
-            tasks={filteredItems}
-            loading={false}
-            deletingId={deleting}
-            hasFilters={hasActiveFilters}
-            onCreateTask={handleCreate}
-            onView={(item) => setViewingItem(item)}
-            onEdit={handleEditWithModal}
-            onDelete={handleDelete}
-            onRestore={handleRestore}
-          />
-        )}
+        {/* Overview Content */}
+        <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
+          {statsLoading ? (
+            <DashboardSkeleton />
+          ) : stats ? (
+            <div className="space-y-6 sm:space-y-8">
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <DashboardKPI
+                  title="Total Tasks"
+                  value={stats.kpis.totalTasks}
+                  subtitle="All created tasks"
+                  icon={FiClipboard}
+                  color="blue"
+                />
+                <DashboardKPI
+                  title="In Progress"
+                  value={stats.kpis.inProgress}
+                  subtitle={`${stats.kpis.totalTasks > 0 ? ((stats.kpis.inProgress / stats.kpis.totalTasks) * 100).toFixed(1) : 0}% of total`}
+                  icon={FiBarChart2}
+                  color="yellow"
+                />
+                <DashboardKPI
+                  title="Completed"
+                  value={stats.kpis.completed}
+                  subtitle={`${stats.kpis.totalTasks > 0 ? ((stats.kpis.completed / stats.kpis.totalTasks) * 100).toFixed(1) : 0}% completion rate`}
+                  icon={FiCheckCircle}
+                  color="green"
+                />
+                <DashboardKPI
+                  title="Overdue"
+                  value={stats.kpis.overdue}
+                  subtitle="Tasks past due date"
+                  icon={FiAlertTriangle}
+                  color="red"
+                />
+              </div>
 
-        {/* Results count */}
-        {!itemsLoading && filteredItems.length > 0 && (
-          <div className="mt-4 sm:mt-6 text-center text-slate-400 text-xs sm:text-sm">
-            Showing {filteredItems.length} task{filteredItems.length !== 1 ? 's' : ''}
-          </div>
-        )}
+              {/* Hours KPI */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <DashboardKPI
+                  title="Estimated Hours"
+                  value={`${stats.kpis.totalEstimatedHours}h`}
+                  subtitle={`${stats.kpis.tasksWithEstimates} tasks with estimates`}
+                  icon={FiClock}
+                  color="purple"
+                />
+                <DashboardKPI
+                  title="Actual Hours"
+                  value={`${stats.kpis.totalActualHours}h`}
+                  subtitle="Time spent on tasks"
+                  icon={FiClock}
+                  color="purple"
+                />
+                <DashboardKPI
+                  title="Hours Variance"
+                  value={`${(parseFloat(stats.kpis.totalActualHours) - parseFloat(stats.kpis.totalEstimatedHours)).toFixed(1)}h`}
+                  subtitle={
+                    parseFloat(stats.kpis.totalActualHours) > parseFloat(stats.kpis.totalEstimatedHours)
+                      ? 'Over budget'
+                      : 'Under budget'
+                  }
+                  icon={FiAlertCircle}
+                  color={
+                    parseFloat(stats.kpis.totalActualHours) > parseFloat(stats.kpis.totalEstimatedHours)
+                      ? 'red'
+                      : 'green'
+                  }
+                />
+              </div>
+
+              {/* Charts Row 1: Status + Priority */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <TaskStatusChart data={stats.statusDistribution} />
+                <TaskPriorityChart data={stats.priorityDistribution} />
+              </div>
+
+              {/* Charts Row 2: Trend + Hours Comparison */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <TaskTrendChart data={stats.taskTrend} />
+                <HoursComparisonChart
+                  estimated={stats.hoursComparison.estimated}
+                  actual={stats.hoursComparison.actual}
+                />
+              </div>
+
+              {/* Charts Row 3: Task Type Distribution (Area) + Priority Trend (Stacked Area) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <TaskTypeDistributionChart data={stats.taskTypeDistribution} />
+                <PriorityTrendChart data={stats.priorityTrend} />
+              </div>
+
+              {/* Charts Row 4: Completion Rate + Status Flow */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <TaskCompletionRateChart data={stats.taskCompletionRate} />
+                <StatusFlowChart data={stats.statusFlow} />
+              </div>
+
+              {/* Charts Row 5: Workload + Weekly Pattern */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <WorkloadByAssigneeChart data={stats.workloadByAssignee} />
+                <WeeklyWorkloadChart data={stats.weeklyWorkload} />
+              </div>
+
+              {/* Activity + Deadlines */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <ActivityList activities={stats.recentActivity} />
+                <UpcomingDeadlines deadlines={stats.upcomingDeadlines} />
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FiAlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400">Failed to load dashboard statistics</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create Task Modal */}
       <TaskCreateModal
         isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          resetForm();
+        onClose={() => setShowCreateModal(false)}
+        editingItem={null}
+        formData={{
+          title: '',
+          description: '',
+          work_type: 'task',
+          status: 'todo',
+          priority: 'medium',
+          assigned_to: '',
+          due_date: '',
+          estimated_hours: '',
+          tags: '',
+          project_id: '',
         }}
-        editingItem={editingItem}
-        formData={formData}
-        isSubmitting={submitting}
-        onSubmit={handleSubmit}
-        onChange={handleChange}
-        onReset={resetForm}
-        validationErrors={validationErrors}
-      />
-
-      {/* View Modal */}
-      <TaskViewModal
-        item={viewingItem}
-        onClose={() => setViewingItem(null)}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={cancelDelete}
-        item={itemToDelete}
-        isDeleting={isDeletingItem}
-        onSoftDelete={handleSoftDelete}
-        onHardDelete={handleHardDelete}
+        isSubmitting={false}
+        onSubmit={async () => {}}
+        onChange={() => {}}
+        onReset={() => {}}
+        validationErrors={[]}
       />
     </DashboardLayout>
   );

@@ -1,5 +1,5 @@
 // API Route: /api/work-items
-// GET - Fetch all work items
+// GET - Fetch work items with pagination and server-side filtering
 // POST - Create a new work item
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -7,7 +7,7 @@ import { workItemRepository } from '@/lib/work-item-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-// GET /api/work-items
+// GET /api/work-items?search=&status=&priority=&work_type=&page=&limit=&sort_by=&sort_order=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -19,37 +19,77 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('project_id');
-    const status = searchParams.get('status');
-    const priority = searchParams.get('priority');
-    const workType = searchParams.get('work_type');
-    const assignee = searchParams.get('assignee');
-    const search = searchParams.get('search');
+    
+    // Filters
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || 'all';
+    const priority = searchParams.get('priority') || 'all';
+    const workType = searchParams.get('work_type') || 'all';
+    
+    // Pagination
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const offset = (page - 1) * limit;
+    
+    // Sorting
+    const sortBy = searchParams.get('sort_by') || 'created_at';
+    const sortOrder = searchParams.get('sort_order') || 'desc';
 
-    let workItems;
+    // Fetch all work items for the user
+    let workItems = await workItemRepository.findByCreator(user.user_id);
 
-    // If no specific filters, get all work items for the user
-    if (!projectId && !status && !priority && !workType && !assignee && !search) {
-      workItems = await workItemRepository.findByCreator(user.user_id);
-    } else if (search && projectId) {
-      workItems = await workItemRepository.search(projectId, search);
-    } else if (status && projectId) {
-      workItems = await workItemRepository.findByStatus(projectId, status);
-    } else if (priority && projectId) {
-      workItems = await workItemRepository.findByPriority(projectId, priority);
-    } else if (workType && projectId) {
-      workItems = await workItemRepository.findByWorkType(projectId, workType);
-    } else if (assignee) {
-      workItems = await workItemRepository.findByAssignee(assignee);
-    } else if (projectId) {
-      workItems = await workItemRepository.findByProjectId(projectId);
-    } else {
-      workItems = await workItemRepository.findAll();
+    // Apply server-side filtering
+    if (search) {
+      workItems = workItems.filter((item) => 
+        item.title.toLowerCase().includes(search.toLowerCase()) ||
+        item.description?.toLowerCase().includes(search.toLowerCase())
+      );
     }
+    if (status !== 'all') {
+      workItems = workItems.filter((item) => item.status === status);
+    }
+    if (priority !== 'all') {
+      workItems = workItems.filter((item) => item.priority === priority);
+    }
+    if (workType !== 'all') {
+      workItems = workItems.filter((item) => item.work_type === workType);
+    }
+
+    // Apply sorting
+    workItems = workItems.sort((a, b) => {
+      const aValue = (a as any)[sortBy];
+      const bValue = (b as any)[sortBy];
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      }
+      return aValue < bValue ? 1 : -1;
+    });
+
+    // Calculate total
+    const total = workItems.length;
+    const totalPages = Math.ceil(total / limit);
+
+    // Apply pagination
+    const paginatedItems = workItems.slice(offset, offset + limit);
 
     return NextResponse.json({
       success: true,
-      data: workItems,
+      data: paginatedItems,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      filters: {
+        search,
+        status,
+        priority,
+        workType,
+      },
     });
   } catch (error) {
     console.error('Error fetching work items:', error);
