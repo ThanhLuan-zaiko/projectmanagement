@@ -54,17 +54,17 @@ export default function HoursComparisonChart({
           </span>
         )}
       </p>
-      <div className="mt-6 h-64" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 256 }}>
+        <ResponsiveContainer width="100%" height={256} minHeight={0}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fill: '#94a3b8', fontSize: 12 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 12 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
@@ -79,18 +79,18 @@ export default function HoursComparisonChart({
               labelStyle={{ color: '#e2e8f0' }}
               formatter={(value) => [`${Number(value)}h`]}
             />
-            <Legend 
+            <Legend
               formatter={(value) => <span className="text-slate-300">{value}</span>}
             />
-            <Bar 
-              dataKey="Estimated" 
-              fill="#06b6d4" 
-              radius={[4, 4, 0, 0]} 
+            <Bar
+              dataKey="Estimated"
+              fill="#06b6d4"
+              radius={[4, 4, 0, 0]}
             />
-            <Bar 
-              dataKey="Actual" 
-              fill="#f59e0b" 
-              radius={[4, 4, 0, 0]} 
+            <Bar
+              dataKey="Actual"
+              fill="#f59e0b"
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>

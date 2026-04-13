@@ -43,17 +43,17 @@ export default function StatusFlowChart({ data }: StatusFlowProps) {
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Task Status Flow</h3>
       <p className="text-slate-400 mt-1 text-sm">Active tasks by status over time</p>
-      <div className="mt-6 h-80" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height={320} minHeight={0}>
           <ComposedChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
@@ -67,17 +67,17 @@ export default function StatusFlowChart({ data }: StatusFlowProps) {
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Legend 
+            <Legend
               formatter={(value) => <span className="text-slate-300">{value}</span>}
             />
             <Bar dataKey="todo" name="To Do" fill="#64748b" radius={[2, 2, 0, 0]} />
             <Bar dataKey="inProgress" name="In Progress" fill="#3b82f6" radius={[2, 2, 0, 0]} />
             <Bar dataKey="review" name="Review" fill="#f59e0b" radius={[2, 2, 0, 0]} />
-            <Line 
-              type="monotone" 
-              dataKey="done" 
-              name="Done" 
-              stroke="#10b981" 
+            <Line
+              type="monotone"
+              dataKey="done"
+              name="Done"
+              stroke="#10b981"
               strokeWidth={3}
               dot={{ fill: '#10b981', r: 4 }}
               activeDot={{ fill: '#10b981', r: 6 }}

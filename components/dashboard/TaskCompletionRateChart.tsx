@@ -41,8 +41,8 @@ export default function TaskCompletionRateChart({ data }: TaskCompletionRateProp
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Task Completion Rate</h3>
       <p className="text-slate-400 mt-1 text-sm">Completed vs created tasks over time</p>
-      <div className="mt-6 h-80" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height={320} minHeight={0}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
@@ -55,13 +55,13 @@ export default function TaskCompletionRateChart({ data }: TaskCompletionRateProp
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
@@ -75,20 +75,20 @@ export default function TaskCompletionRateChart({ data }: TaskCompletionRateProp
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="created" 
+            <Area
+              type="monotone"
+              dataKey="created"
               name="Created"
-              stroke="#8b5cf6" 
-              fill="url(#colorCreated)" 
+              stroke="#8b5cf6"
+              fill="url(#colorCreated)"
               strokeWidth={2}
             />
-            <Area 
-              type="monotone" 
-              dataKey="completed" 
+            <Area
+              type="monotone"
+              dataKey="completed"
               name="Completed"
-              stroke="#10b981" 
-              fill="url(#colorCompleted)" 
+              stroke="#10b981"
+              fill="url(#colorCompleted)"
               strokeWidth={2}
             />
           </AreaChart>

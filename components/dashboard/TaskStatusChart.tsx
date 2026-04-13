@@ -48,17 +48,17 @@ export default function TaskStatusChart({ data }: TaskStatusChartProps) {
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Task Status Distribution</h3>
       <p className="text-slate-400 mt-1 text-sm">Overview of tasks by status</p>
-      <div className="mt-6 h-64" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 256 }}>
+        <ResponsiveContainer width="100%" height={256} minHeight={0}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fill: '#94a3b8', fontSize: 12 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 12 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}

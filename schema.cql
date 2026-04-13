@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS experts (
     rating DECIMAL,
     is_active BOOLEAN,
     created_at TIMESTAMP,
+    updated_at TIMESTAMP,
     PRIMARY KEY (expert_id)
 );
 
@@ -238,6 +239,9 @@ CREATE TABLE IF NOT EXISTS expert_time_estimates (
     notes TEXT,
     estimated_at TIMESTAMP,
     estimated_by UUID,
+    is_deleted BOOLEAN,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
     PRIMARY KEY (project_id, work_item_id, expert_id, estimate_id)
 ) WITH CLUSTERING ORDER BY (work_item_id ASC, expert_id ASC, estimate_id DESC);
 
@@ -257,6 +261,9 @@ CREATE TABLE IF NOT EXISTS expert_project_summary (
 
 -- Index for finding expert assignments
 CREATE INDEX IF NOT EXISTS expert_time_estimates_by_expert ON expert_time_estimates (expert_id);
+
+-- Index for filtering deleted estimates
+CREATE INDEX IF NOT EXISTS expert_time_estimates_by_deleted ON expert_time_estimates (is_deleted);
 
 -- ============================================================
 -- 3. COST ESTIMATION

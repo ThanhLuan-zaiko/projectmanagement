@@ -43,8 +43,8 @@ export default function PriorityTrendChart({ data }: PriorityTrendProps) {
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Priority Trend</h3>
       <p className="text-slate-400 mt-1 text-sm">Task priority distribution over time</p>
-      <div className="mt-6 h-80" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height={320} minHeight={0}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorLow" x1="0" y1="0" x2="0" y2="1">
@@ -65,13 +65,13 @@ export default function PriorityTrendChart({ data }: PriorityTrendProps) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
@@ -85,37 +85,37 @@ export default function PriorityTrendChart({ data }: PriorityTrendProps) {
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="low" 
+            <Area
+              type="monotone"
+              dataKey="low"
               name="Low"
               stackId="1"
-              stroke="#64748b" 
-              fill="url(#colorLow)" 
+              stroke="#64748b"
+              fill="url(#colorLow)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="medium" 
+            <Area
+              type="monotone"
+              dataKey="medium"
               name="Medium"
               stackId="1"
-              stroke="#3b82f6" 
-              fill="url(#colorMedium)" 
+              stroke="#3b82f6"
+              fill="url(#colorMedium)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="high" 
+            <Area
+              type="monotone"
+              dataKey="high"
               name="High"
               stackId="1"
-              stroke="#f59e0b" 
-              fill="url(#colorHigh)" 
+              stroke="#f59e0b"
+              fill="url(#colorHigh)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="urgent" 
+            <Area
+              type="monotone"
+              dataKey="urgent"
               name="Urgent"
               stackId="1"
-              stroke="#f43f5e" 
-              fill="url(#colorUrgent)" 
+              stroke="#f43f5e"
+              fill="url(#colorUrgent)"
             />
           </AreaChart>
         </ResponsiveContainer>

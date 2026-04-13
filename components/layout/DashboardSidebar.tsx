@@ -39,6 +39,13 @@ export const dashboardNavItems: NavItem[] = [
     activePattern: '/dashboard/tasks',
   },
   {
+    id: 'experts',
+    label: 'Expert Management',
+    href: '/dashboard/experts',
+    icon: FiUsers,
+    activePattern: '/dashboard/experts',
+  },
+  {
     id: 'expert-estimation',
     label: 'Expert Time Estimation',
     href: '/dashboard/expert-estimation',

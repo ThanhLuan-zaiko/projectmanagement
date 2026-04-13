@@ -43,8 +43,8 @@ export default function TaskTypeDistributionChart({ data }: TaskTypeDistribution
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Task Type Distribution</h3>
       <p className="text-slate-400 mt-1 text-sm">Work items breakdown by type over time</p>
-      <div className="mt-6 h-80" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height={320} minHeight={0}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorTask" x1="0" y1="0" x2="0" y2="1">
@@ -65,13 +65,13 @@ export default function TaskTypeDistributionChart({ data }: TaskTypeDistribution
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.3} />
-            <XAxis 
-              dataKey="date" 
+            <XAxis
+              dataKey="date"
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#94a3b8', fontSize: 11 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
               tickLine={{ stroke: '#475569', opacity: 0.3 }}
@@ -85,37 +85,37 @@ export default function TaskTypeDistributionChart({ data }: TaskTypeDistribution
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="task" 
+            <Area
+              type="monotone"
+              dataKey="task"
               name="Tasks"
               stackId="1"
-              stroke="#3b82f6" 
-              fill="url(#colorTask)" 
+              stroke="#3b82f6"
+              fill="url(#colorTask)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="bug" 
+            <Area
+              type="monotone"
+              dataKey="bug"
               name="Bugs"
               stackId="1"
-              stroke="#f43f5e" 
-              fill="url(#colorBug)" 
+              stroke="#f43f5e"
+              fill="url(#colorBug)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="milestone" 
+            <Area
+              type="monotone"
+              dataKey="milestone"
               name="Milestones"
               stackId="1"
-              stroke="#10b981" 
-              fill="url(#colorMilestone)" 
+              stroke="#10b981"
+              fill="url(#colorMilestone)"
             />
-            <Area 
-              type="monotone" 
-              dataKey="subtask" 
+            <Area
+              type="monotone"
+              dataKey="subtask"
               name="Subtasks"
               stackId="1"
-              stroke="#f59e0b" 
-              fill="url(#colorSubtask)" 
+              stroke="#f59e0b"
+              fill="url(#colorSubtask)"
             />
           </AreaChart>
         </ResponsiveContainer>

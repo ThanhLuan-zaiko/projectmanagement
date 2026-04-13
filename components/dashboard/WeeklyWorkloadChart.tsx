@@ -50,15 +50,15 @@ export default function WeeklyWorkloadChart({ data }: WeeklyWorkloadProps) {
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Weekly Workload Pattern</h3>
       <p className="text-slate-400 mt-1 text-sm">Task distribution by day of week</p>
-      <div className="mt-6 h-80" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 320 }}>
+        <ResponsiveContainer width="100%" height={320} minHeight={0}>
           <RadarChart data={chartData}>
             <PolarGrid stroke="#475569" opacity={0.3} />
-            <PolarAngleAxis 
-              dataKey="day" 
+            <PolarAngleAxis
+              dataKey="day"
               tick={{ fill: '#94a3b8', fontSize: 12 }}
             />
-            <PolarRadiusAxis 
+            <PolarRadiusAxis
               tick={{ fill: '#94a3b8', fontSize: 10 }}
               axisLine={{ stroke: '#475569', opacity: 0.3 }}
             />
@@ -71,7 +71,7 @@ export default function WeeklyWorkloadChart({ data }: WeeklyWorkloadProps) {
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Legend 
+            <Legend
               formatter={(value) => <span className="text-slate-300">{value}</span>}
             />
             <Radar

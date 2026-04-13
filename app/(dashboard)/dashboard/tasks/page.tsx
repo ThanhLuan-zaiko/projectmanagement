@@ -246,30 +246,6 @@ function TasksContent() {
               </div>
             </>
           )}
-
-          {/* Empty state */}
-          {!itemsLoading && workItems.length === 0 && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-12 backdrop-blur-xl text-center">
-              <div className="w-16 h-16 bg-slate-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FiClipboard className="w-8 h-8 text-slate-500" />
-              </div>
-              <h3 className="text-white font-semibold text-lg mb-2">No tasks found</h3>
-              <p className="text-slate-400 text-sm mb-6">
-                {pagination.total > 0
-                  ? 'Try adjusting your filters or search query'
-                  : 'Get started by creating your first task'}
-              </p>
-              {pagination.total === 0 && (
-                <button
-                  onClick={handleCreate}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg shadow-blue-500/30"
-                >
-                  <FiClipboard className="w-5 h-5" />
-                  Create Task
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiRefreshCw } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiRefreshCw, FiChevronDown, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 
 interface FilterOption {
   value: string;
@@ -157,9 +157,7 @@ export default function TableFilters({
                   ))}
                 </select>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <FiChevronDown className="w-4 h-4 text-slate-400" />
                 </div>
               </div>
               <span className="text-sm text-slate-400">per page</span>
@@ -186,13 +184,9 @@ export default function TableFilters({
                   title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                 >
                   {sortOrder === 'asc' ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
+                    <FiArrowUp className="w-4 h-4" />
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    <FiArrowDown className="w-4 h-4" />
                   )}
                 </button>
               </div>

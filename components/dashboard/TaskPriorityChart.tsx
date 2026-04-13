@@ -47,8 +47,8 @@ export default function TaskPriorityChart({ data }: TaskPriorityChartProps) {
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-6 backdrop-blur-xl">
       <h3 className="text-white font-semibold text-lg">Task Priority Breakdown</h3>
       <p className="text-slate-400 mt-1 text-sm">Distribution by priority level</p>
-      <div className="mt-6 h-64" style={{ minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%" minHeight={0}>
+      <div className="mt-6" style={{ width: '100%', minHeight: 256 }}>
+        <ResponsiveContainer width="100%" height={256} minHeight={0}>
           <PieChart>
             <Pie
               data={chartData}
@@ -73,7 +73,7 @@ export default function TaskPriorityChart({ data }: TaskPriorityChartProps) {
               }}
               labelStyle={{ color: '#e2e8f0' }}
             />
-            <Legend 
+            <Legend
               formatter={(value) => <span className="text-slate-300">{value}</span>}
             />
           </PieChart>
