@@ -4,7 +4,10 @@ import { checkRateLimit, RATE_LIMITS } from '@/utils/rate-limit';
 // Routes that require authentication
 const protectedRoutes = ['/dashboard', '/profile', '/settings', '/projects'];
 
-// Routes that should redirect to dashboard if already authenticated
+// Dynamic project routes that also require auth
+const projectRoutes = ['/[']; // Matches /[projectCode]/...
+
+// Routes that should redirect to projects if already authenticated
 const authRoutes = ['/auth'];
 
 export async function proxy(request: NextRequest) {
@@ -53,14 +56,14 @@ export async function proxy(request: NextRequest) {
   // Check if user has a session token (we'll validate it server-side)
   const hasSession = !!sessionToken;
 
-  // If trying to access auth pages while having a session, redirect to dashboard
+  // If trying to access auth pages while having a session, redirect to projects
   // This prevents logged-in users from visiting login/register pages
   if (hasSession && authRoutes.some(route => pathname.startsWith(route))) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/projects', request.url));
   }
 
   // If trying to access protected routes without session, redirect to login
-  if (!hasSession && protectedRoutes.some(route => pathname.startsWith(route))) {
+  if (!hasSession && (protectedRoutes.some(route => pathname.startsWith(route)) || projectRoutes.some(route => pathname.startsWith(route)))) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);

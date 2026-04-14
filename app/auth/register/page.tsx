@@ -85,11 +85,11 @@ export default function RegisterPage() {
 
       setPasswordErrors([]);
 
-      setSuccess('Registration successful! Redirecting to dashboard...');
+      setSuccess('Registration successful! Redirecting to projects...');
 
-      // Redirect directly to dashboard
+      // Redirect to projects page to create/select a project
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/projects';
       }, 1500);
     } catch (err) {
       setError('Network error. Please try again.');

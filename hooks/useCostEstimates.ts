@@ -14,7 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseCostEstimatesOptions {
-  projectId: string;
+  projectId?: string;
   workItemId: string;
   estimateType: string;
   status: string;
@@ -60,12 +60,6 @@ export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstim
   });
 
   const fetchEstimates = useCallback(async () => {
-    if (!projectId) {
-      setEstimates([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

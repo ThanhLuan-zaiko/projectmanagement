@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { expertRepository } from '@/lib/expert-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { db } from '@/config';
 
 // GET /api/experts?is_active=&availability_status=&search=&page=&limit=
 export async function GET(request: NextRequest) {
@@ -19,6 +20,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+
+    // Use default project_id if not provided
+    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
 
     // Filters
     const isActive = searchParams.get('is_active');
@@ -51,6 +55,14 @@ export async function GET(request: NextRequest) {
       // Default: fetch ALL experts (both active and inactive)
       experts = await expertRepository.findAllWithOptions({ limit: 1000 });
     }
+
+    // Filter by project_id - only return experts associated with the given project
+    const summaryResult = await db.execute(
+      'SELECT expert_id FROM expert_project_summary WHERE project_id = ?',
+      { params: [projectId] }
+    );
+    const projectExpertIds = new Set(summaryResult.rows.map((r: any) => r.expert_id));
+    experts = experts.filter((e: any) => projectExpertIds.has(e.expert_id));
 
     // Apply sorting
     const sortBy = searchParams.get('sort_by') || 'created_at';

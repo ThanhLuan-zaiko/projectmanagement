@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   FiHome,
@@ -13,6 +13,7 @@ import {
   FiX,
   FiChevronLeft,
   FiChevronRight,
+  FiSettings,
 } from 'react-icons/fi';
 
 interface NavItem {
@@ -23,57 +24,74 @@ interface NavItem {
   activePattern: string;
 }
 
-export const dashboardNavItems: NavItem[] = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: FiHome,
-    activePattern: '/dashboard',
-  },
-  {
-    id: 'tasks',
-    label: 'Task Board',
-    href: '/dashboard/tasks',
-    icon: FiClipboard,
-    activePattern: '/dashboard/tasks',
-  },
-  {
-    id: 'experts',
-    label: 'Expert Management',
-    href: '/dashboard/experts',
-    icon: FiUsers,
-    activePattern: '/dashboard/experts',
-  },
-  {
-    id: 'expert-estimation',
-    label: 'Expert Time Estimation',
-    href: '/dashboard/expert-estimation',
-    icon: FiUsers,
-    activePattern: '/dashboard/expert-estimation',
-  },
-  {
-    id: 'cost-estimation',
-    label: 'Project Cost Estimation',
-    href: '/dashboard/cost-estimation',
-    icon: FiDollarSign,
-    activePattern: '/dashboard/cost-estimation',
-  },
-  {
-    id: 'project-schedule',
-    label: 'Project Schedule',
-    href: '/dashboard/project-schedule',
-    icon: FiCalendar,
-    activePattern: '/dashboard/project-schedule',
-  },
-  {
-    id: 'work-schedule',
-    label: 'Work Schedule',
-    href: '/dashboard/work-schedule',
-    icon: FiList,
-    activePattern: '/dashboard/work-schedule',
-  },
-];
+export function useProjectNavItems(): NavItem[] {
+  const params = useParams();
+  const projectCode = params?.projectCode as string;
+
+  const baseItems: NavItem[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      href: `/${projectCode}/dashboard`,
+      icon: FiHome,
+      activePattern: `/${projectCode}/dashboard`,
+    },
+    {
+      id: 'tasks',
+      label: 'Task Board',
+      href: `/${projectCode}/dashboard/tasks`,
+      icon: FiClipboard,
+      activePattern: `/${projectCode}/dashboard/tasks`,
+    },
+    {
+      id: 'experts',
+      label: 'Expert Management',
+      href: `/${projectCode}/dashboard/experts`,
+      icon: FiUsers,
+      activePattern: `/${projectCode}/dashboard/experts`,
+    },
+    {
+      id: 'expert-estimation',
+      label: 'Expert Time Estimation',
+      href: `/${projectCode}/dashboard/expert-estimation`,
+      icon: FiUsers,
+      activePattern: `/${projectCode}/dashboard/expert-estimation`,
+    },
+    {
+      id: 'cost-estimation',
+      label: 'Project Cost Estimation',
+      href: `/${projectCode}/dashboard/cost-estimation`,
+      icon: FiDollarSign,
+      activePattern: `/${projectCode}/dashboard/cost-estimation`,
+    },
+    {
+      id: 'project-schedule',
+      label: 'Project Schedule',
+      href: `/${projectCode}/dashboard/project-schedule`,
+      icon: FiCalendar,
+      activePattern: `/${projectCode}/dashboard/project-schedule`,
+    },
+    {
+      id: 'work-schedule',
+      label: 'Work Schedule',
+      href: `/${projectCode}/dashboard/work-schedule`,
+      icon: FiList,
+      activePattern: `/${projectCode}/dashboard/work-schedule`,
+    },
+    {
+      id: 'settings',
+      label: 'Project Settings',
+      href: `/${projectCode}/dashboard/settings`,
+      icon: FiSettings,
+      activePattern: `/${projectCode}/dashboard/settings`,
+    },
+  ];
+
+  return baseItems;
+}
+
+// Keep old export for backward compatibility
+export const dashboardNavItems: NavItem[] = [];
 
 interface DashboardSidebarProps {
   isOpen?: boolean;
@@ -83,6 +101,7 @@ interface DashboardSidebarProps {
 
 export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const navItems = useProjectNavItems();
 
   // Initialize state lazily from localStorage to prevent flash on F5
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -103,8 +122,9 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
   }, [isCollapsed, variant]);
 
   const isActive = (pattern: string) => {
-    if (pattern === '/dashboard') {
-      return pathname === '/dashboard';
+    const basePattern = pattern.replace(/\/\[.+\]/g, '');
+    if (pattern.includes('/dashboard') && !pattern.includes('/dashboard/')) {
+      return pathname === pattern || pathname?.startsWith(pattern);
     }
     return pathname?.startsWith(pattern);
   };
@@ -146,7 +166,7 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
 
         {/* Navigation Items */}
         <nav className="px-3 py-4 space-y-2">
-          {dashboardNavItems.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.activePattern);
             const Icon = item.icon;
 
@@ -248,7 +268,7 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
 
         {/* Navigation Items */}
         <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-          {dashboardNavItems.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.activePattern);
             const Icon = item.icon;
 

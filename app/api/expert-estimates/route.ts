@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Filters
-    const projectId = searchParams.get('project_id') || '';
+    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
     const workItemId = searchParams.get('work_item_id') || '';
     const expertId = searchParams.get('expert_id') || '';
     const confidence = searchParams.get('confidence') || 'all';
@@ -39,32 +39,14 @@ export async function GET(request: NextRequest) {
 
     if (deletedOnly) {
       // Only fetch deleted items (trash)
-      if (projectId) {
-        estimates = await expertEstimateRepository.findDeleted(projectId);
-      } else {
-        return NextResponse.json({
-          success: false,
-          error: 'Project ID is required when viewing trash',
-        }, { status: 400 });
-      }
-    } else if (projectId) {
-      estimates = await expertEstimateRepository.findByProjectId(projectId, { limit: 1000, includeDeleted });
-    } else if (expertId) {
-      estimates = await expertEstimateRepository.findByExpert(expertId, includeDeleted);
+      estimates = await expertEstimateRepository.findDeleted(projectId);
     } else {
-      // If no filters, return empty (user must specify at least project or expert)
-      return NextResponse.json({
-        success: true,
-        data: [],
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-      });
+      estimates = await expertEstimateRepository.findByProjectId(projectId, { limit: 1000, includeDeleted });
+    }
+
+    // Apply server-side filtering
+    if (expertId) {
+      estimates = estimates.filter((est) => est.expert_id === expertId);
     }
 
     // Apply server-side filtering

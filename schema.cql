@@ -97,9 +97,11 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 -- Project basic info
 CREATE TABLE IF NOT EXISTS projects (
     project_id UUID,
+    project_code TEXT,           -- Unique project code (e.g., 'PROJ-XXXXX')
     project_name TEXT,
     description TEXT,
     status TEXT,                 -- 'planning', 'active', 'on_hold', 'completed', 'cancelled'
+    project_leader_id UUID,      -- Project leader/manager
     start_date TIMESTAMP,
     target_end_date TIMESTAMP,
     actual_end_date TIMESTAMP,
@@ -112,9 +114,11 @@ CREATE TABLE IF NOT EXISTS projects (
     PRIMARY KEY (project_id)
 );
 
--- Index for querying projects by status and owner
+-- Index for querying projects by status, owner, and code
 CREATE INDEX IF NOT EXISTS projects_by_status ON projects (status);
 CREATE INDEX IF NOT EXISTS projects_by_owner_id ON projects (owner_id);
+CREATE INDEX IF NOT EXISTS projects_by_project_code ON projects (project_code);
+CREATE INDEX IF NOT EXISTS projects_by_project_leader ON projects (project_leader_id);
 
 -- Project team members
 CREATE TABLE IF NOT EXISTS project_team (

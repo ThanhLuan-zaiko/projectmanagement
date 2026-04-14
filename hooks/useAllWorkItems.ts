@@ -33,6 +33,8 @@ export function useAllWorkItems(options: UseAllWorkItemsOptions = {}): UseAllWor
         limit: '1000', // Fetch all
       });
 
+      if (projectId) params.set('project_id', projectId);
+
       const response = await fetch(`/api/work-items?${params.toString()}`, {
         cache: 'no-store',
       });
@@ -48,7 +50,7 @@ export function useAllWorkItems(options: UseAllWorkItemsOptions = {}): UseAllWor
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [projectId]);
 
   const refresh = useCallback(async () => {
     await fetchWorkItems();

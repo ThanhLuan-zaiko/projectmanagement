@@ -14,7 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseProjectSchedulesOptions {
-  projectId: string;
+  projectId?: string;
   scheduleType: string;
   status: string;
   page: number;
@@ -58,12 +58,6 @@ export function useProjectSchedules(options: UseProjectSchedulesOptions): UsePro
   });
 
   const fetchSchedules = useCallback(async () => {
-    if (!projectId) {
-      setSchedules([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

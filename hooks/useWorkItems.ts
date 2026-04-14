@@ -14,6 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseWorkItemsOptions {
+  projectId?: string;
   search: string;
   status: string;
   priority: string;
@@ -36,6 +37,7 @@ interface UseWorkItemsResult {
 
 export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
   const {
+    projectId,
     search,
     status,
     priority,
@@ -65,6 +67,7 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
       setError(null);
 
       const params = new URLSearchParams({
+        ...(projectId && { project_id: projectId }),
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search }),

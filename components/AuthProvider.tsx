@@ -26,10 +26,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     // If still loading, do nothing
     if (loading) return;
 
-    // If authenticated and on auth routes (login/register), redirect to dashboard
+    // If authenticated and on auth routes (login/register), redirect to projects
     // This prevents logged-in users from visiting login/register pages
     if (user && isPublicRoute) {
-      router.push('/dashboard');
+      router.push('/projects');
       return;
     }
 

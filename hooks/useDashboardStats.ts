@@ -100,7 +100,7 @@ export interface DashboardStats {
   upcomingDeadlines: DeadlineItem[];
 }
 
-export function useDashboardStats() {
+export function useDashboardStats(projectId?: string) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,9 +110,9 @@ export function useDashboardStats() {
       setLoading(true);
       setError(null);
 
-      const cacheKey = 'dashboard-stats';
+      const cacheKey = `dashboard-stats-${projectId || 'default'}`;
       const cacheTime = 5000; // 5 seconds cache
-      
+
       if (!forceRefresh) {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
@@ -125,7 +125,10 @@ export function useDashboardStats() {
         }
       }
 
-      const response = await fetch('/api/dashboard/stats');
+      const params = new URLSearchParams();
+      if (projectId) params.set('project_id', projectId);
+
+      const response = await fetch(`/api/dashboard/stats?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');

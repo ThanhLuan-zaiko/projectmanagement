@@ -7,7 +7,7 @@ import { workItemRepository } from '@/lib/work-item-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 
-// GET /api/work-items?search=&status=&priority=&work_type=&page=&limit=&sort_by=&sort_order=
+// GET /api/work-items?project_id=&search=&status=&priority=&work_type=&page=&limit=&sort_by=&sort_order=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -19,28 +19,31 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    
+
+    // Project ID is optional - use default if not provided
+    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
+
     // Filters
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const priority = searchParams.get('priority') || 'all';
     const workType = searchParams.get('work_type') || 'all';
-    
+
     // Pagination
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
-    
+
     // Sorting
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') || 'desc';
 
-    // Fetch all work items for the user
-    let workItems = await workItemRepository.findByCreator(user.user_id);
+    // Fetch work items for the project
+    let workItems = await workItemRepository.findByProjectId(projectId, { limit: 1000 });
 
     // Apply server-side filtering
     if (search) {
-      workItems = workItems.filter((item) => 
+      workItems = workItems.filter((item) =>
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         item.description?.toLowerCase().includes(search.toLowerCase())
       );
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
     workItems = workItems.sort((a, b) => {
       const aValue = (a as any)[sortBy];
       const bValue = (b as any)[sortBy];
-      
+
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
       }

@@ -14,7 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseWorkSchedulesOptions {
-  projectId: string;
+  projectId?: string;
   status: string;
   page: number;
   limit: number;
@@ -56,12 +56,6 @@ export function useWorkSchedules(options: UseWorkSchedulesOptions): UseWorkSched
   });
 
   const fetchSchedules = useCallback(async () => {
-    if (!projectId) {
-      setSchedules([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

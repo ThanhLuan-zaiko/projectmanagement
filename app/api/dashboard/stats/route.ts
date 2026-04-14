@@ -1,13 +1,13 @@
 // API Route: /api/dashboard/stats
 // GET - Fetch dashboard aggregated statistics
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/config';
 import { WorkItem } from '@/lib/work-item-repository';
 
-// GET /api/dashboard/stats
-export async function GET() {
+// GET /api/dashboard/stats?project_id=
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -17,13 +17,16 @@ export async function GET() {
       );
     }
 
-    // Fetch all work items for the user
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
+
+    // Fetch all work items for the project
     const workItemsQuery = `
-      SELECT * FROM work_items 
-      WHERE created_by = ? ALLOW FILTERING
+      SELECT * FROM work_items
+      WHERE project_id = ?
     `;
-    const workItemsResult = await db.execute(workItemsQuery, { 
-      params: [user.user_id] 
+    const workItemsResult = await db.execute(workItemsQuery, {
+      params: [projectId]
     });
     const workItems = workItemsResult.rows as unknown as WorkItem[];
 

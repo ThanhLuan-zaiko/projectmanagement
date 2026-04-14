@@ -14,6 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseExpertsOptions {
+  projectId?: string;
   isActive?: boolean;
   availabilityStatus?: string;
   search?: string;
@@ -35,8 +36,9 @@ interface UseExpertsResult {
   deleteExpert: (id: string) => Promise<boolean>;
 }
 
-export function useExperts(options: UseExpertsOptions = {}): UseExpertsResult {
+export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   const {
+    projectId,
     isActive,
     availabilityStatus,
     search,
@@ -69,6 +71,7 @@ export function useExperts(options: UseExpertsOptions = {}): UseExpertsResult {
         sort_by: sortBy,
         sort_order: sortOrder,
       });
+      if (projectId) params.set('project_id', projectId);
       if (isActive !== undefined) params.set('is_active', isActive.toString());
       if (availabilityStatus) params.set('availability_status', availabilityStatus);
       if (search) params.set('search', search);
@@ -99,7 +102,7 @@ export function useExperts(options: UseExpertsOptions = {}): UseExpertsResult {
     } finally {
       setLoading(false);
     }
-  }, [isActive, availabilityStatus, search, sortBy, sortOrder, page, limit]);
+  }, [projectId, isActive, availabilityStatus, search, sortBy, sortOrder, page, limit]);
 
   const refresh = useCallback(async () => {
     await fetchExperts();

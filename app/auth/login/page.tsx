@@ -12,7 +12,7 @@ import { FormData, FormErrors } from '../types';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const redirect = searchParams.get('redirect') || '/projects';
   
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);

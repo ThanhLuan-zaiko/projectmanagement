@@ -14,7 +14,7 @@ interface PaginationInfo {
 }
 
 interface UseExpertEstimatesOptions {
-  projectId: string;
+  projectId?: string;
   workItemId: string;
   expertId: string;
   confidence: string;
@@ -62,12 +62,6 @@ export function useExpertEstimates(options: UseExpertEstimatesOptions): UseExper
   });
 
   const fetchEstimates = useCallback(async () => {
-    if (!projectId && !expertId) {
-      setEstimates([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

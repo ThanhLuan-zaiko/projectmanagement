@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Filters
-    const projectId = searchParams.get('project_id') || '';
+    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
     const scheduleType = searchParams.get('schedule_type') || 'all';
     const status = searchParams.get('status') || 'all';
     const includeDeleted = searchParams.get('include_deleted') === 'true';
@@ -37,30 +37,9 @@ export async function GET(request: NextRequest) {
 
     if (deletedOnly) {
       // Only fetch deleted items (trash)
-      if (projectId) {
-        schedules = await projectScheduleRepository.findDeleted(projectId);
-      } else {
-        return NextResponse.json({
-          success: false,
-          error: 'Project ID is required when viewing trash',
-        }, { status: 400 });
-      }
-    } else if (projectId) {
-      schedules = await projectScheduleRepository.findByProjectId(projectId, { limit: 1000, includeDeleted });
+      schedules = await projectScheduleRepository.findDeleted(projectId);
     } else {
-      // If no filters, return empty
-      return NextResponse.json({
-        success: true,
-        data: [],
-        pagination: {
-          page,
-          limit,
-          total: 0,
-          totalPages: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-      });
+      schedules = await projectScheduleRepository.findByProjectId(projectId, { limit: 1000, includeDeleted });
     }
 
     // Apply server-side filtering
