@@ -52,3 +52,10 @@ export { default as ProjectScheduleList } from './ProjectScheduleList';
 export { default as ProjectScheduleForm } from './ProjectScheduleForm';
 export { default as ProjectScheduleModal } from './ProjectScheduleModal';
 export { default as ProjectScheduleViewModal } from './ProjectScheduleViewModal';
+
+// Work Schedule components
+export { default as WorkScheduleCard } from './WorkScheduleCard';
+export { default as WorkScheduleList } from './WorkScheduleList';
+export { default as WorkScheduleForm } from './WorkScheduleForm';
+export { default as WorkScheduleModal } from './WorkScheduleModal';
+export { default as WorkScheduleViewModal } from './WorkScheduleViewModal';

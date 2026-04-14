@@ -387,12 +387,16 @@ CREATE TABLE IF NOT EXISTS work_item_schedules (
     scheduled_by UUID,
     scheduled_at TIMESTAMP,
     updated_at TIMESTAMP,
+    is_deleted BOOLEAN,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
     PRIMARY KEY (project_id, work_item_id)
 ) WITH CLUSTERING ORDER BY (work_item_id ASC);
 
 -- Index for querying scheduled work items by status and schedule
 CREATE INDEX IF NOT EXISTS work_item_schedules_by_status ON work_item_schedules (status);
 CREATE INDEX IF NOT EXISTS work_item_schedules_by_schedule ON work_item_schedules (schedule_id);
+CREATE INDEX IF NOT EXISTS work_item_schedules_by_deleted ON work_item_schedules (is_deleted);
 
 -- Schedule assignments (who is working on what, when)
 CREATE TABLE IF NOT EXISTS schedule_assignments (

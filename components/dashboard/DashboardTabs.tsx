@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign, FiCalendar } from 'react-icons/fi';
+import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign, FiCalendar, FiList } from 'react-icons/fi';
 
 const tabs = [
   {
@@ -39,6 +39,12 @@ const tabs = [
     label: 'Project Schedule',
     href: '/dashboard/project-schedule',
     icon: FiCalendar,
+  },
+  {
+    id: 'work-schedule',
+    label: 'Work Schedule',
+    href: '/dashboard/work-schedule',
+    icon: FiList,
   },
 ];
 
