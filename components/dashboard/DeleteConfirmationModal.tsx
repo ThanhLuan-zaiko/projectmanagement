@@ -4,12 +4,13 @@ import { FiLoader, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
 import { WorkItem } from '@/types/work-item';
 import { ExpertTimeEstimate } from '@/types/expert-estimate';
 import { Expert } from '@/types/expert';
+import { CostEstimate } from '@/types/cost-estimate';
 import Modal from '@/components/ui/Modal';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: WorkItem | ExpertTimeEstimate | Expert | null;
+  item: WorkItem | ExpertTimeEstimate | Expert | CostEstimate | null;
   isDeleting: boolean;
   onSoftDelete: () => void;
   onHardDelete: () => void;
@@ -43,7 +44,9 @@ export default function DeleteConfirmationModal({
             ? isInactive
               ? 'Permanently Delete Expert'
               : 'Deactivate Expert'
-            : 'Delete Expert Estimate'
+            : 'estimate_id' in item
+              ? 'Delete Cost Estimate'
+              : 'Delete Expert Estimate'
       }
       subtitle={
         isWorkItem

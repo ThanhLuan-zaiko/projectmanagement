@@ -287,12 +287,16 @@ CREATE TABLE IF NOT EXISTS cost_estimates (
     estimated_by UUID,
     approved_at TIMESTAMP,
     approved_by UUID,
+    is_deleted BOOLEAN,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
     PRIMARY KEY (project_id, work_item_id, estimate_id)
 ) WITH CLUSTERING ORDER BY (work_item_id ASC, estimate_id DESC);
 
 -- Index for querying cost estimates by type and status
 CREATE INDEX IF NOT EXISTS cost_estimates_by_type ON cost_estimates (estimate_type);
 CREATE INDEX IF NOT EXISTS cost_estimates_by_status ON cost_estimates (status);
+CREATE INDEX IF NOT EXISTS cost_estimates_by_deleted ON cost_estimates (is_deleted);
 
 -- Project cost summary
 CREATE TABLE IF NOT EXISTS project_cost_summary (
