@@ -5,12 +5,13 @@ import { WorkItem } from '@/types/work-item';
 import { ExpertTimeEstimate } from '@/types/expert-estimate';
 import { Expert } from '@/types/expert';
 import { CostEstimate } from '@/types/cost-estimate';
+import { ProjectSchedule } from '@/types/project-schedule';
 import Modal from '@/components/ui/Modal';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: WorkItem | ExpertTimeEstimate | Expert | CostEstimate | null;
+  item: WorkItem | ExpertTimeEstimate | Expert | CostEstimate | ProjectSchedule | null;
   isDeleting: boolean;
   onSoftDelete: () => void;
   onHardDelete: () => void;
@@ -45,7 +46,9 @@ export default function DeleteConfirmationModal({
               ? 'Permanently Delete Expert'
               : 'Deactivate Expert'
             : 'estimate_id' in item
-              ? 'Delete Cost Estimate'
+              ? 'schedule_id' in item
+                ? 'Delete Project Schedule'
+                : 'Delete Cost Estimate'
               : 'Delete Expert Estimate'
       }
       subtitle={

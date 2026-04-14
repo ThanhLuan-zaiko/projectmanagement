@@ -45,3 +45,10 @@ export { default as CostEstimateList } from './CostEstimateList';
 export { default as CostEstimateForm } from './CostEstimateForm';
 export { default as CostEstimateModal } from './CostEstimateModal';
 export { default as CostEstimateViewModal } from './CostEstimateViewModal';
+
+// Project Schedule components
+export { default as ProjectScheduleCard } from './ProjectScheduleCard';
+export { default as ProjectScheduleList } from './ProjectScheduleList';
+export { default as ProjectScheduleForm } from './ProjectScheduleForm';
+export { default as ProjectScheduleModal } from './ProjectScheduleModal';
+export { default as ProjectScheduleViewModal } from './ProjectScheduleViewModal';

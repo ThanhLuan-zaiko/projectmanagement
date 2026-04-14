@@ -334,12 +334,16 @@ CREATE TABLE IF NOT EXISTS project_schedules (
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     created_by UUID,
+    is_deleted BOOLEAN,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
     PRIMARY KEY (project_id, schedule_id)
 ) WITH CLUSTERING ORDER BY (schedule_id ASC);
 
 -- Index for querying schedules by status and type
 CREATE INDEX IF NOT EXISTS project_schedules_by_status ON project_schedules (status);
 CREATE INDEX IF NOT EXISTS project_schedules_by_type ON project_schedules (schedule_type);
+CREATE INDEX IF NOT EXISTS project_schedules_by_deleted ON project_schedules (is_deleted);
 
 -- Project schedule timeline
 CREATE TABLE IF NOT EXISTS project_timeline (

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign } from 'react-icons/fi';
+import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign, FiCalendar } from 'react-icons/fi';
 
 const tabs = [
   {
@@ -33,6 +33,12 @@ const tabs = [
     label: 'Cost Estimation',
     href: '/dashboard/cost-estimation',
     icon: FiDollarSign,
+  },
+  {
+    id: 'project-schedule',
+    label: 'Project Schedule',
+    href: '/dashboard/project-schedule',
+    icon: FiCalendar,
   },
 ];
 
