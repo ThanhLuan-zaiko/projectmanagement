@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { FiChevronDown, FiCheck } from 'react-icons/fi';
+import { createPortal } from 'react-dom';
 
 interface SelectOption {
   value: string;
@@ -17,6 +18,7 @@ interface CustomSelectProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   required?: boolean;
   placeholder?: string;
+  usePortal?: boolean;
 }
 
 export default function CustomSelect({
@@ -26,9 +28,12 @@ export default function CustomSelect({
   onChange,
   required = false,
   placeholder = 'Select...',
+  usePortal = false,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const selectRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -38,9 +43,23 @@ export default function CustomSelect({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
+
+  // Update dropdown position when opened
+  useEffect(() => {
+    if (isOpen && buttonRef.current && usePortal) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [isOpen, usePortal]);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -52,10 +71,65 @@ export default function CustomSelect({
         value: optionValue,
       },
     } as React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
-    
+
     onChange(syntheticEvent);
     setIsOpen(false);
   };
+
+  const DropdownContent = () => (
+    <div 
+      className="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden"
+      style={usePortal ? {
+        position: 'fixed',
+        top: `${dropdownPosition.top}px`,
+        left: `${dropdownPosition.left}px`,
+        width: `${dropdownPosition.width}px`,
+        zIndex: 9999,
+      } : {
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        right: 0,
+        marginTop: '0.5rem',
+        zIndex: 50,
+      }}
+    >
+      <div 
+        className="py-2 max-h-60 overflow-y-auto"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgb(71 85 105 / 0.5) transparent',
+        }}
+      >
+        {options.map((option) => {
+          const isSelected = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              className={`
+                w-full px-4 py-2.5 flex items-center gap-3 transition-colors
+                ${
+                  isSelected
+                    ? 'bg-blue-600/20 text-blue-400'
+                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                }
+              `}
+            >
+              {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+              <span className={`flex-1 text-left ${option.color || ''}`}>
+                {option.label}
+              </span>
+              {isSelected && (
+                <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="relative" ref={selectRef}>
@@ -70,6 +144,7 @@ export default function CustomSelect({
 
       {/* Custom Select Button */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-2.5 bg-slate-700/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all flex items-center justify-between hover:bg-slate-700/70"
@@ -89,36 +164,7 @@ export default function CustomSelect({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
-          <div className="py-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-            {options.map((option) => {
-              const isSelected = option.value === value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleSelect(option.value)}
-                  className={`
-                    w-full px-4 py-2.5 flex items-center gap-3 transition-colors
-                    ${
-                      isSelected
-                        ? 'bg-blue-600/20 text-blue-400'
-                        : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-                    }
-                  `}
-                >
-                  {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                  <span className={`flex-1 text-left ${option.color || ''}`}>
-                    {option.label}
-                  </span>
-                  {isSelected && (
-                    <FiCheck className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        usePortal ? createPortal(<DropdownContent />, document.body) : <DropdownContent />
       )}
     </div>
   );

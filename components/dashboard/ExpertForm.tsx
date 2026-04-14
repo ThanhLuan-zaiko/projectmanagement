@@ -139,7 +139,11 @@ export default function ExpertForm({
           checked={formData.is_active}
           onChange={(checked) => {
             onChange({
-              target: { name: 'is_active', value: checked.toString() } as any,
+              target: { 
+                name: 'is_active', 
+                type: 'checkbox',
+                checked: checked,
+              } as any,
             } as any);
           }}
           label="Active (experts can be assigned to projects)"

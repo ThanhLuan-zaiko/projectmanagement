@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiRefreshCw, FiChevronDown, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 interface FilterOption {
   value: string;
@@ -119,21 +120,15 @@ export default function TableFilters({
 
           {/* Dynamic Filters */}
           {filters.slice(0, 3).map((filter, index) => (
-            <div key={filter.key} className="relative">
-              {index === 0 && (
-                <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 pointer-events-none z-10" />
-              )}
-              <select
+            <div key={filter.key}>
+              <CustomSelect
+                name={filter.key}
                 value={filter.value}
+                options={filter.options}
                 onChange={(e) => filter.onChange(e.target.value)}
-                className={`w-full ${index === 0 ? 'pl-9 sm:pl-10' : 'px-4'} pr-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none`}
-              >
-                {filter.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                placeholder={filter.placeholder || 'Select...'}
+                usePortal={true}
+              />
             </div>
           ))}
         </div>
@@ -144,43 +139,33 @@ export default function TableFilters({
             {/* Items Per Page */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400 whitespace-nowrap">Show:</span>
-              <div className="relative">
-                <select
-                  value={limit}
-                  onChange={(e) => onLimitChange(Number(e.target.value))}
-                  className="appearance-none bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-1.5 pr-8 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
-                >
-                  {limitOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <FiChevronDown className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
+              <CustomSelect
+                name="limit"
+                value={limit.toString()}
+                options={limitOptions.map((option) => ({
+                  value: option.toString(),
+                  label: option.toString(),
+                }))}
+                onChange={(e) => onLimitChange(Number(e.target.value))}
+                usePortal={true}
+              />
               <span className="text-sm text-slate-400">per page</span>
             </div>
 
             {/* Sort */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-slate-400 whitespace-nowrap">Sort:</span>
-              <div className="flex items-center bg-slate-700/50 border border-slate-600 rounded-lg overflow-hidden">
-                <select
+              <div className="flex items-center gap-2">
+                <CustomSelect
+                  name="sortBy"
                   value={sortBy}
+                  options={sortOptions}
                   onChange={(e) => onSortChange(e.target.value)}
-                  className="appearance-none bg-transparent px-3 py-1.5 text-sm text-white focus:outline-none cursor-pointer"
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  usePortal={true}
+                />
                 <button
                   onClick={() => onSortChange(sortBy)}
-                  className="p-1.5 hover:bg-slate-600/50 transition-all text-slate-400 hover:text-white"
+                  className="p-2 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-slate-600/50 transition-all text-slate-400 hover:text-white"
                   title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                 >
                   {sortOrder === 'asc' ? (

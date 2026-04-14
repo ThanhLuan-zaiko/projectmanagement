@@ -15,6 +15,9 @@ export default function Switch({
   disabled = false,
   id,
 }: SwitchProps) {
+  // Ensure checked is always a boolean
+  const isChecked = Boolean(checked);
+  
   return (
     <label
       className={`flex items-center gap-3 cursor-pointer select-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -24,7 +27,7 @@ export default function Switch({
         <input
           type="checkbox"
           id={id}
-          checked={checked}
+          checked={isChecked}
           onChange={(e) => onChange(e.target.checked)}
           disabled={disabled}
           className="sr-only"
@@ -32,7 +35,7 @@ export default function Switch({
         <div
           className={`
             w-11 h-6 rounded-full transition-colors duration-200
-            ${checked ? 'bg-blue-500' : 'bg-slate-600'}
+            ${isChecked ? 'bg-blue-500' : 'bg-slate-600'}
             ${disabled ? 'opacity-50' : ''}
           `}
         >
@@ -40,7 +43,7 @@ export default function Switch({
             className={`
               absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md
               transform transition-transform duration-200
-              ${checked ? 'translate-x-5' : 'translate-x-0'}
+              ${isChecked ? 'translate-x-5' : 'translate-x-0'}
             `}
           />
         </div>

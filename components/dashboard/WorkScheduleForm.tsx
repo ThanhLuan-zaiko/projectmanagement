@@ -1,6 +1,7 @@
 import { FiLoader, FiCalendar, FiClock, FiAlertCircle } from 'react-icons/fi';
 import { WorkItemScheduleFormData, WorkItemSchedule } from '@/types/work-schedule';
 import CustomSelect from '@/components/ui/CustomSelect';
+import Switch from '@/components/ui/Switch';
 
 interface WorkScheduleFormProps {
   formData: WorkItemScheduleFormData;
@@ -168,26 +169,24 @@ export default function WorkScheduleForm({
         />
       </div>
 
-      {/* Critical Path Checkbox */}
+      {/* Critical Path Switch */}
       <div className="flex items-center gap-3 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-        <input
-          type="checkbox"
-          name="is_critical_path"
+        <FiAlertCircle className="w-5 h-5 text-orange-400" />
+        <Switch
           checked={formData.is_critical_path}
-          onChange={(e) => {
+          onChange={(checked) => {
+            // Create a proper checkbox event that handleChange can process
             const checkboxEvent = {
-              target: { name: 'is_critical_path', value: e.target.checked.toString() },
-            } as any;
+              target: { 
+                name: 'is_critical_path', 
+                type: 'checkbox',
+                checked: checked,
+              },
+            } as unknown as React.ChangeEvent<HTMLInputElement>;
             onChange(checkboxEvent);
           }}
-          className="w-5 h-5 rounded border-slate-600 text-cyan-600 focus:ring-cyan-500"
+          label="Critical Path Item"
         />
-        <div className="flex items-center gap-2">
-          <FiAlertCircle className="w-5 h-5 text-orange-400" />
-          <label className="text-sm font-medium text-slate-300">
-            Critical Path Item
-          </label>
-        </div>
       </div>
 
       {/* Form Actions */}
