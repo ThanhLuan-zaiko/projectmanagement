@@ -87,7 +87,7 @@ function TasksContent() {
     handleSubmit: handleFormSubmit,
     handleChange,
     handleEdit,
-  } = useTaskForm(refreshData);
+  } = useTaskForm({ projectId: project?.project_id, onSuccess: refreshData });
 
   const {
     showDeleteModal,

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiEdit2 } from 'react-icons/fi';
 import type { Project, ProjectFormData, ProjectFormErrors } from '@/types/project';
-import { validateProjectFormData } from '@/lib/project-validation';
+import { validateProjectFormData, validateProjectField, type ValidatableField } from '@/lib/project-validation';
 import ProjectForm from './ProjectForm';
 import ProjectsPageHeader from './ProjectsPageHeader';
 import { formatProjectBudget, formatProjectDate, getStatusLabel } from './project-utils';
@@ -81,6 +81,17 @@ export default function ProjectEditClient({ projectId }: ProjectEditClientProps)
       ...current,
       [name]: undefined,
       form: undefined,
+    }));
+  };
+
+  const handleBlur = (
+    event: FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name } = event.target;
+    const error = validateProjectField(name as ValidatableField, formData);
+    setFormErrors((current) => ({
+      ...current,
+      [name]: error ?? current[name as keyof ProjectFormErrors],
     }));
   };
 
@@ -162,6 +173,7 @@ export default function ProjectEditClient({ projectId }: ProjectEditClientProps)
             isSubmitting={submitting}
             submitLabel={submitting ? 'Saving changes...' : 'Save changes'}
             onChange={handleChange}
+            onBlur={handleBlur}
             onSubmit={handleSubmit}
             onCancel={() => router.push('/projects/workspace')}
           />

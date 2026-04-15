@@ -1,5 +1,6 @@
 import { FiCalendar, FiDollarSign, FiFileText, FiFlag, FiHash, FiLoader, FiAlertTriangle } from 'react-icons/fi';
 import type { ProjectFormData, ProjectFormErrors } from '@/types/project';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 interface ProjectFormProps {
   formData: ProjectFormData;
@@ -9,6 +10,9 @@ interface ProjectFormProps {
   projectCode?: string;
   onChange: (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => void;
+  onBlur?: (
+    event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel?: () => void;
@@ -22,6 +26,11 @@ const statusOptions = [
   { value: 'cancelled', label: 'Cancelled' },
 ] as const;
 
+const statusSelectOptions = statusOptions.map((status) => ({
+  value: status.value,
+  label: status.label,
+}));
+
 export default function ProjectForm({
   formData,
   validationErrors,
@@ -29,6 +38,7 @@ export default function ProjectForm({
   submitLabel,
   projectCode,
   onChange,
+  onBlur,
   onSubmit,
   onCancel,
 }: ProjectFormProps) {
@@ -63,6 +73,7 @@ export default function ProjectForm({
             type="text"
             value={formData.project_name}
             onChange={onChange}
+            onBlur={onBlur}
             placeholder="Launch platform migration"
             maxLength={80}
             className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
@@ -90,6 +101,7 @@ export default function ProjectForm({
             rows={4}
             value={formData.description}
             onChange={onChange}
+            onBlur={onBlur}
             placeholder="Define the project goals, expected deliverables and team context."
             maxLength={500}
             className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
@@ -123,22 +135,13 @@ export default function ProjectForm({
             <FiFlag className="h-4 w-4 text-cyan-300" />
             Status
           </label>
-          <select
+          <CustomSelect
             name="status"
             value={formData.status}
+            options={statusSelectOptions}
             onChange={onChange}
-            className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
-              validationErrors?.status
-                ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                : 'border-white/10 bg-slate-900 focus:border-cyan-400/60'
-            }`}
-          >
-            {statusOptions.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+            usePortal
+          />
           <p className={`mt-2 text-xs ${validationErrors?.status ? 'text-rose-200' : 'text-slate-500'}`}>
             {validationErrors?.status || 'Use status deliberately so the analytics screen stays accurate.'}
           </p>
@@ -157,6 +160,7 @@ export default function ProjectForm({
               step="0.01"
               value={formData.budget || ''}
               onChange={onChange}
+              onBlur={onBlur}
               placeholder="25000"
               className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
                 validationErrors?.budget
@@ -169,6 +173,7 @@ export default function ProjectForm({
               type="text"
               value={formData.currency || 'USD'}
               onChange={onChange}
+              onBlur={onBlur}
               placeholder="USD"
               maxLength={3}
               className={`w-24 rounded-2xl border px-4 py-3 uppercase text-white outline-none transition placeholder:text-slate-500 ${
@@ -198,6 +203,7 @@ export default function ProjectForm({
             type="date"
             value={formData.start_date || ''}
             onChange={onChange}
+            onBlur={onBlur}
             min={new Date().toISOString().split('T')[0]}
             className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
               validationErrors?.start_date
@@ -220,6 +226,7 @@ export default function ProjectForm({
             type="date"
             value={formData.target_end_date || ''}
             onChange={onChange}
+            onBlur={onBlur}
             min={formData.start_date || new Date().toISOString().split('T')[0]}
             className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
               validationErrors?.target_end_date

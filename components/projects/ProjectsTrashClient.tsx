@@ -6,6 +6,7 @@ import { useProjectActions } from '@/hooks/useProjectActions';
 import { useProjects } from '@/hooks/useProjects';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import type { Project } from '@/types/project';
+import Modal from '@/components/ui/Modal';
 import ProjectFilters from './ProjectFilters';
 import ProjectList from './ProjectList';
 import ProjectsPageHeader from './ProjectsPageHeader';
@@ -18,6 +19,8 @@ export default function ProjectsTrashClient() {
     defaultSortOrder: 'desc',
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [restoreModalProject, setRestoreModalProject] = useState<Project | null>(null);
+  const [deleteModalProject, setDeleteModalProject] = useState<Project | null>(null);
 
   const trashState = useProjects({
     scope: 'owned',
@@ -40,25 +43,23 @@ export default function ProjectsTrashClient() {
   const { busyProjectId, busyAction, restoreProject, permanentlyDeleteProject } = useProjectActions(refreshTrash);
 
   const handleRestore = async (project: Project) => {
-    const confirmed = window.confirm(`Restore "${project.project_name}" back to the workspace?`);
+    setRestoreModalProject(project);
+  };
 
-    if (!confirmed) {
-      return;
-    }
-
-    await restoreProject(project);
+  const handleConfirmRestore = async () => {
+    if (!restoreModalProject) return;
+    await restoreProject(restoreModalProject);
+    setRestoreModalProject(null);
   };
 
   const handlePermanentDelete = async (project: Project) => {
-    const confirmed = window.confirm(
-      `Permanently delete "${project.project_name}"? This cannot be undone.`
-    );
+    setDeleteModalProject(project);
+  };
 
-    if (!confirmed) {
-      return;
-    }
-
-    await permanentlyDeleteProject(project);
+  const handleConfirmPermanentDelete = async () => {
+    if (!deleteModalProject) return;
+    await permanentlyDeleteProject(deleteModalProject);
+    setDeleteModalProject(null);
   };
 
   return (
@@ -119,6 +120,75 @@ export default function ProjectsTrashClient() {
         onRestore={handleRestore}
         onPermanentDelete={handlePermanentDelete}
       />
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        isOpen={!!restoreModalProject}
+        onClose={() => setRestoreModalProject(null)}
+        title="Restore project"
+        subtitle="The project will return to your workspace."
+        size="sm"
+      >
+        {restoreModalProject && (
+          <div className="space-y-6">
+            <p className="text-sm text-slate-300">
+              Are you sure you want to restore <span className="font-semibold text-white">{restoreModalProject.project_name}</span> back to your workspace?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setRestoreModalProject(null)}
+                className="flex-1 rounded-2xl border border-white/10 px-5 py-3 font-medium text-slate-200 transition hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRestore}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-3 font-medium text-white transition hover:from-emerald-600 hover:to-emerald-700"
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Permanent Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteModalProject}
+        onClose={() => setDeleteModalProject(null)}
+        title="Delete permanently"
+        subtitle="This action cannot be undone."
+        size="sm"
+        validationErrors={['Deleting this project will remove all its data permanently.']}
+        showValidation={!!deleteModalProject}
+      >
+        {deleteModalProject && (
+          <div className="space-y-6">
+            <p className="text-sm text-slate-300">
+              Are you sure you want to permanently delete <span className="font-semibold text-rose-300">{deleteModalProject.project_name}</span>?
+              This action is irreversible.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteModalProject(null)}
+                className="flex-1 rounded-2xl border border-white/10 px-5 py-3 font-medium text-slate-200 transition hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPermanentDelete}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 px-5 py-3 font-medium text-white transition hover:from-rose-700 hover:to-red-700"
+              >
+                Delete permanently
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

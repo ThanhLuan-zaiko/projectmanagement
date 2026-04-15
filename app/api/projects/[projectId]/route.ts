@@ -107,7 +107,14 @@ export async function PATCH(
     }
 
     // Check if user is owner or has permission
-    if (project.owner_id !== user.user_id) {
+    const membership = await projectTeamRepository.getMemberRole(projectId, user.user_id);
+
+    const userIdStr = String(user.user_id);
+    const ownerIdStr = String(project.owner_id);
+    const isOwner = ownerIdStr === userIdStr;
+    const isManager = membership?.role === 'manager' && membership.is_active;
+
+    if (!isOwner && !isManager) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }
@@ -174,7 +181,7 @@ export async function DELETE(
     }
 
     // Check if user is owner
-    if (project.owner_id !== user.user_id) {
+    if (String(project.owner_id) !== String(user.user_id)) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

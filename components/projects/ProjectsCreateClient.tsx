@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FocusEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiCompass, FiFolderPlus, FiLayers } from 'react-icons/fi';
 import type { ProjectFormData, ProjectFormErrors } from '@/types/project';
-import { validateProjectCode, validateProjectFormData } from '@/lib/project-validation';
+import { validateProjectCode, validateProjectField, validateProjectFormData, type ValidatableField } from '@/lib/project-validation';
 import JoinProjectCard from './JoinProjectCard';
 import ProjectForm from './ProjectForm';
 import ProjectsPageHeader from './ProjectsPageHeader';
@@ -44,6 +44,17 @@ export default function ProjectsCreateClient() {
       ...current,
       [name]: undefined,
       form: undefined,
+    }));
+  };
+
+  const handleFormBlur = (
+    event: FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name } = event.target;
+    const error = validateProjectField(name as ValidatableField, formData);
+    setFormErrors((current) => ({
+      ...current,
+      [name]: error ?? current[name as keyof ProjectFormErrors],
     }));
   };
 
@@ -151,6 +162,7 @@ export default function ProjectsCreateClient() {
             isSubmitting={isCreating}
             submitLabel={isCreating ? 'Creating project...' : 'Create project'}
             onChange={handleFormChange}
+            onBlur={handleFormBlur}
             onSubmit={handleCreate}
           />
         </div>

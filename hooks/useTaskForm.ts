@@ -1,12 +1,17 @@
 // Custom hook for task form state management
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WorkItem, WorkItemFormData } from '@/types/work-item';
+
+interface UseTaskFormOptions {
+  projectId?: string;
+  onSuccess?: () => void;
+}
 
 const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
 
-const initialFormData: WorkItemFormData = {
+const getInitialFormData = (projectId: string): WorkItemFormData => ({
   title: '',
   description: '',
   work_type: 'task',
@@ -16,17 +21,24 @@ const initialFormData: WorkItemFormData = {
   due_date: '',
   estimated_hours: '',
   tags: '',
-  project_id: DEFAULT_PROJECT_ID,
-};
+  project_id: projectId,
+});
 
-export function useTaskForm(onSuccess?: () => void) {
-  const [formData, setFormData] = useState<WorkItemFormData>(initialFormData);
+export function useTaskForm(options: UseTaskFormOptions = {}) {
+  const { projectId, onSuccess } = options;
+  const [formData, setFormData] = useState<WorkItemFormData>(getInitialFormData(projectId || DEFAULT_PROJECT_ID));
   const [editingItem, setEditingItem] = useState<WorkItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (projectId) {
+      setFormData(prev => ({ ...prev, project_id: projectId }));
+    }
+  }, [projectId]);
+
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData(projectId || DEFAULT_PROJECT_ID));
     setEditingItem(null);
     setValidationErrors([]);
   };

@@ -60,6 +60,7 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
     hasNextPage: false,
     hasPrevPage: false,
   });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchWorkItems = useCallback(async () => {
     try {
@@ -80,6 +81,7 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
 
       const response = await fetch(`/api/work-items?${params.toString()}`, {
         cache: 'no-store',
+        next: { revalidate: 0 },
       });
       const data = await response.json();
 
@@ -97,9 +99,10 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
     } finally {
       setLoading(false);
     }
-  }, [search, status, priority, workType, sortBy, sortOrder, page, limit, alwaysShowPagination]);
+  }, [search, status, priority, workType, sortBy, sortOrder, page, limit, alwaysShowPagination, refreshKey]);
 
   const refresh = useCallback(async () => {
+    setRefreshKey(prev => prev + 1);
     await fetchWorkItems();
   }, [fetchWorkItems]);
 

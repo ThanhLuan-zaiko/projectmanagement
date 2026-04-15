@@ -151,3 +151,13 @@ export function validateProjectCode(value: string): { value: string; error?: str
 
   return { value: normalizedValue };
 }
+
+export type ValidatableField = keyof Omit<ProjectFormData, 'project_leader_id'>;
+
+export function validateProjectField(
+  field: ValidatableField,
+  formData: Partial<ProjectFormData>
+): string | null {
+  const validation = validateProjectFormData(formData);
+  return (validation.fieldErrors as Record<string, string | undefined>)[field] ?? null;
+}

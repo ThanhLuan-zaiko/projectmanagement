@@ -26,7 +26,7 @@ export async function POST(
       );
     }
 
-    if (project.owner_id !== user.user_id) {
+    if (String(project.owner_id) !== String(user.user_id)) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

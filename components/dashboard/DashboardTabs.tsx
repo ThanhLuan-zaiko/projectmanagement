@@ -1,58 +1,62 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign, FiCalendar, FiList } from 'react-icons/fi';
-
-const tabs = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    href: '/dashboard',
-    icon: FiBarChart2,
-  },
-  {
-    id: 'tasks',
-    label: 'Task Management',
-    href: '/dashboard/tasks',
-    icon: FiClipboard,
-  },
-  {
-    id: 'experts',
-    label: 'Expert Management',
-    href: '/dashboard/experts',
-    icon: FiUsers,
-  },
-  {
-    id: 'expert-estimates',
-    label: 'Expert Estimation',
-    href: '/dashboard/expert-estimation',
-    icon: FiUsers,
-  },
-  {
-    id: 'cost-estimates',
-    label: 'Cost Estimation',
-    href: '/dashboard/cost-estimation',
-    icon: FiDollarSign,
-  },
-  {
-    id: 'project-schedule',
-    label: 'Project Schedule',
-    href: '/dashboard/project-schedule',
-    icon: FiCalendar,
-  },
-  {
-    id: 'work-schedule',
-    label: 'Work Schedule',
-    href: '/dashboard/work-schedule',
-    icon: FiList,
-  },
-];
 
 export default function DashboardTabs() {
   const pathname = usePathname();
   const router = useRouter();
+  const params = useParams();
+  const projectCode = params?.projectCode as string;
 
-  const activeTab = tabs.find((tab) => tab.href === pathname)?.id || 'overview';
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      href: `/${projectCode}/dashboard`,
+      icon: FiBarChart2,
+    },
+    {
+      id: 'tasks',
+      label: 'Task Management',
+      href: `/${projectCode}/dashboard/tasks`,
+      icon: FiClipboard,
+    },
+    {
+      id: 'experts',
+      label: 'Expert Management',
+      href: `/${projectCode}/dashboard/experts`,
+      icon: FiUsers,
+    },
+    {
+      id: 'expert-estimates',
+      label: 'Expert Estimation',
+      href: `/${projectCode}/dashboard/expert-estimation`,
+      icon: FiUsers,
+    },
+    {
+      id: 'cost-estimates',
+      label: 'Cost Estimation',
+      href: `/${projectCode}/dashboard/cost-estimation`,
+      icon: FiDollarSign,
+    },
+    {
+      id: 'project-schedule',
+      label: 'Project Schedule',
+      href: `/${projectCode}/dashboard/project-schedule`,
+      icon: FiCalendar,
+    },
+    {
+      id: 'work-schedule',
+      label: 'Work Schedule',
+      href: `/${projectCode}/dashboard/work-schedule`,
+      icon: FiList,
+    },
+  ];
+
+  const activeTab = tabs
+    .filter((tab) => pathname?.startsWith(tab.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.id || 'overview';
 
   return (
     <div className="border-b border-slate-700 mb-6">

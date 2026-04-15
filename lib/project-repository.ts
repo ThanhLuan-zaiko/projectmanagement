@@ -128,6 +128,17 @@ export class ProjectRepository extends BaseRepository<Project> {
     const { query, params } = insert(this.tableName, projectData as Record<string, unknown>);
     await db.execute(query, { params });
 
+    // Automatically add the owner to the project team
+    if (projectData.owner_id) {
+      await projectTeamRepository.addMember(
+        projectData.project_id,
+        projectData.owner_id,
+        'owner',
+        projectData.created_by || projectData.owner_id,
+        ['all'] // Grant all permissions to owner
+      );
+    }
+
     return projectData as Project;
   }
 

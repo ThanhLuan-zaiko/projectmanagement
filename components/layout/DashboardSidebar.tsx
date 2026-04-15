@@ -124,7 +124,7 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
   const isActive = (pattern: string) => {
     const basePattern = pattern.replace(/\/\[.+\]/g, '');
     if (pattern.includes('/dashboard') && !pattern.includes('/dashboard/')) {
-      return pathname === pattern || pathname?.startsWith(pattern);
+      return pathname === pattern;
     }
     return pathname?.startsWith(pattern);
   };

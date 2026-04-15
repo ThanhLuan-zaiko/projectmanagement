@@ -1,13 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { FiFolderPlus, FiLayers } from 'react-icons/fi';
 import { useProjectActions } from '@/hooks/useProjectActions';
 import { useProjects } from '@/hooks/useProjects';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import type { Project } from '@/types/project';
+import Modal from '@/components/ui/Modal';
 import ProjectFilters from './ProjectFilters';
 import ProjectList from './ProjectList';
 import ProjectsPageHeader from './ProjectsPageHeader';
@@ -21,6 +22,7 @@ export default function ProjectsWorkspaceClient() {
     defaultSortOrder: 'desc',
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [trashModalProject, setTrashModalProject] = useState<Project | null>(null);
 
   const ownedProjectsState = useProjects({
     scope: 'owned',
@@ -51,13 +53,13 @@ export default function ProjectsWorkspaceClient() {
   const { busyProjectId, busyAction, moveToTrash } = useProjectActions(refreshAll);
 
   const handleMoveToTrash = async (project: Project) => {
-    const confirmed = window.confirm(`Move "${project.project_name}" to trash?`);
+    setTrashModalProject(project);
+  };
 
-    if (!confirmed) {
-      return;
-    }
-
-    await moveToTrash(project);
+  const handleConfirmTrash = async () => {
+    if (!trashModalProject) return;
+    await moveToTrash(trashModalProject);
+    setTrashModalProject(null);
   };
 
   return (
@@ -149,6 +151,40 @@ export default function ProjectsWorkspaceClient() {
         loading={memberProjectsState.loading}
         onOpen={(project) => router.push(`/${project.project_code}/dashboard`)}
       />
+
+      {/* Move to Trash Confirmation Modal */}
+      <Modal
+        isOpen={!!trashModalProject}
+        onClose={() => setTrashModalProject(null)}
+        title="Move to trash"
+        subtitle="This action can be undone from the trash page."
+        size="sm"
+      >
+        {trashModalProject && (
+          <div className="space-y-6">
+            <p className="text-sm text-slate-300">
+              Are you sure you want to move <span className="font-semibold text-white">{trashModalProject.project_name}</span> to trash?
+              The project will be recoverable from the trash page.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setTrashModalProject(null)}
+                className="flex-1 rounded-2xl border border-white/10 px-5 py-3 font-medium text-slate-200 transition hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmTrash}
+                className="flex-1 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 px-5 py-3 font-medium text-white transition hover:from-rose-600 hover:to-rose-700 disabled:opacity-70"
+              >
+                Move to trash
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
