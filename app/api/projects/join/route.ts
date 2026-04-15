@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { validateProjectCode } from '@/lib/project-validation';
 
 // POST /api/projects/join
 export async function POST(request: NextRequest) {
@@ -17,16 +18,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const codeValidation = validateProjectCode(body.project_code || '');
 
-    if (!body.project_code) {
+    if (codeValidation.error) {
       return NextResponse.json(
-        { success: false, error: 'Project code is required' },
+        {
+          success: false,
+          error: codeValidation.error,
+          fieldErrors: {
+            project_code: codeValidation.error,
+          },
+        },
         { status: 400 }
       );
     }
 
     // Find project by code
-    const project = await projectRepository.findByCode(body.project_code);
+    const project = await projectRepository.findByCode(codeValidation.value);
     if (!project) {
       return NextResponse.json(
         { success: false, error: 'Project not found' },
@@ -39,6 +47,11 @@ export async function POST(request: NextRequest) {
       project.project_id,
       user.user_id
     );
+    const membershipRole = project.owner_id === user.user_id ? 'owner' : 'member';
+    const permissions =
+      membershipRole === 'owner'
+        ? ['project:manage', 'project:delete', 'project:restore', 'team:manage']
+        : [];
 
     if (existingMember && existingMember.is_active) {
       return NextResponse.json({
@@ -55,15 +68,16 @@ export async function POST(request: NextRequest) {
     await projectTeamRepository.addMember(
       project.project_id,
       user.user_id,
-      'member',
-      user.user_id // added_by
+      membershipRole,
+      user.user_id,
+      permissions
     );
 
     return NextResponse.json({
       success: true,
       data: {
         project,
-        role: 'member',
+        role: membershipRole,
       },
       message: 'Joined project successfully',
     });

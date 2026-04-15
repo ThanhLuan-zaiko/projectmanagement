@@ -1,12 +1,12 @@
 // API Route: /api/projects/my-projects
 // GET - Get all projects the current user is a member of
 
-import { NextRequest, NextResponse } from 'next/server';
-import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
+import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { getProjectPortfolio } from '@/lib/project-service';
 
 // GET /api/projects/my-projects
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -16,25 +16,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get team memberships
-    const memberships = await projectTeamRepository.getUserProjects(user.user_id);
+    const portfolio = await getProjectPortfolio(user.user_id, {
+      scope: 'all',
+      limit: 1000,
+      sortBy: 'updated_at',
+      sortOrder: 'desc',
+    });
 
-    // Get project details for each membership
-    const projects = await Promise.all(
-      memberships.map(async (membership) => {
-        const project = await projectRepository.findById(membership.project_id);
-        if (!project) return null;
-
-        return {
-          ...project,
-          role: membership.role,
-          joined_at: membership.joined_at,
-        };
-      })
-    );
-
-    // Filter out null values (projects that might have been deleted)
-    const validProjects = projects.filter((p) => p !== null);
+    const validProjects = portfolio.items.map((project) => ({
+      ...project,
+      role: project.membership_role || 'owner',
+    }));
 
     return NextResponse.json({
       success: true,

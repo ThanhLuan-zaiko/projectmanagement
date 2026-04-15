@@ -22,7 +22,7 @@ export default function DashboardHeader({
   const { user } = useAuth();
 
   return (
-    <div className="relative border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-xl" style={{ zIndex: 40 }}>
+    <div className="relative z-50 overflow-visible border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-xl">
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -32,7 +32,7 @@ export default function DashboardHeader({
             )}
           </div>
 
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-3 relative overflow-visible">
             {children}
 
             {actionLabel && onAction && (

@@ -1,6 +1,6 @@
 // Project Repository
 import { BaseRepository } from './repository';
-import { db } from '@/config';
+import { db, insert, type QueryOptions } from '@/config';
 
 export interface Project extends Record<string, unknown> {
   project_id: string;
@@ -18,6 +18,9 @@ export interface Project extends Record<string, unknown> {
   created_at: Date;
   updated_at: Date;
   created_by: string;
+  is_deleted: boolean;
+  deleted_at: Date | null;
+  deleted_by: string | null;
 }
 
 export interface ProjectTeamMember extends Record<string, unknown> {
@@ -31,9 +34,39 @@ export interface ProjectTeamMember extends Record<string, unknown> {
   added_by: string;
 }
 
+interface ProjectQueryOptions {
+  includeDeleted?: boolean;
+  deletedOnly?: boolean;
+}
+
+type ProjectFindOptions = QueryOptions & ProjectQueryOptions;
+
 export class ProjectRepository extends BaseRepository<Project> {
   protected tableName = 'projects';
   protected primaryKey = 'project_id';
+
+  private normalizeProject(project: Project): Project {
+    return {
+      ...project,
+      is_deleted: Boolean(project.is_deleted),
+      deleted_at: project.deleted_at ?? null,
+      deleted_by: project.deleted_by ?? null,
+    };
+  }
+
+  private filterDeletedProjects(projects: Project[], options?: ProjectQueryOptions): Project[] {
+    const normalizedProjects = projects.map((project) => this.normalizeProject(project));
+
+    if (options?.deletedOnly) {
+      return normalizedProjects.filter((project) => project.is_deleted);
+    }
+
+    if (options?.includeDeleted) {
+      return normalizedProjects;
+    }
+
+    return normalizedProjects.filter((project) => !project.is_deleted);
+  }
 
   // Generate unique project code
   generateProjectCode(): string {
@@ -44,10 +77,26 @@ export class ProjectRepository extends BaseRepository<Project> {
   }
 
   // Find project by code
-  async findByCode(projectCode: string): Promise<Project | null> {
+  async findByCode(projectCode: string, options?: ProjectFindOptions): Promise<Project | null> {
     const query = 'SELECT * FROM projects WHERE project_code = ?';
     const result = await db.execute<Project>(query, { params: [projectCode] });
-    return result.rows[0] || null;
+    const project = result.rows[0];
+
+    if (!project) {
+      return null;
+    }
+
+    return this.filterDeletedProjects([project], options)[0] || null;
+  }
+
+  async findById(id: string, options?: ProjectFindOptions): Promise<Project | null> {
+    const project = await super.findById(id, options);
+
+    if (!project) {
+      return null;
+    }
+
+    return this.filterDeletedProjects([project], options)[0] || null;
   }
 
   // Create project with auto-generated code
@@ -71,45 +120,63 @@ export class ProjectRepository extends BaseRepository<Project> {
       created_by: data.created_by || data.owner_id,
       created_at: now,
       updated_at: now,
+      is_deleted: false,
+      deleted_at: null,
+      deleted_by: null,
     };
 
-    const { query, params } = require('@/config').insert(this.tableName, projectData as Record<string, unknown>);
+    const { query, params } = insert(this.tableName, projectData as Record<string, unknown>);
     await db.execute(query, { params });
 
     return projectData as Project;
   }
 
   // Get projects by owner
-  async findByOwnerId(ownerId: string): Promise<Project[]> {
+  async findByOwnerId(ownerId: string, options?: ProjectFindOptions): Promise<Project[]> {
     const query = 'SELECT * FROM projects WHERE owner_id = ?';
     const result = await db.execute<Project>(query, { params: [ownerId] });
-    return result.rows;
+    return this.filterDeletedProjects(result.rows, options);
   }
 
   // Get projects by project leader
-  async findByProjectLeader(leaderId: string): Promise<Project[]> {
+  async findByProjectLeader(leaderId: string, options?: ProjectFindOptions): Promise<Project[]> {
     const query = 'SELECT * FROM projects WHERE project_leader_id = ?';
     const result = await db.execute<Project>(query, { params: [leaderId] });
-    return result.rows;
+    return this.filterDeletedProjects(result.rows, options);
   }
 
   // Get projects user is involved in
-  async findUserProjects(userId: string): Promise<Project[]> {
-    const query = `
-      SELECT p.* FROM projects p
-      INNER JOIN project_team pt ON p.project_id = pt.project_id
-      WHERE pt.member_id = ? AND pt.is_active = true
-    `;
-    const result = await db.execute<Project>(query, { params: [userId] });
-    return result.rows;
+  async findUserProjects(userId: string, options?: ProjectFindOptions): Promise<Project[]> {
+    const memberships = await projectTeamRepository.getUserProjects(userId);
+    const projects = await Promise.all(
+      memberships.map((membership) => this.findById(membership.project_id, options))
+    );
+
+    return projects.filter((project): project is Project => project !== null);
   }
 
   // Update project
   async updateProject(projectId: string, data: Partial<Project>): Promise<Project | null> {
-    return this.update(projectId, {
+    await this.update(projectId, {
       ...data,
       updated_at: new Date(),
     });
+
+    return this.findById(projectId, { includeDeleted: true });
+  }
+
+  async softDeleteProject(projectId: string, deletedBy: string): Promise<boolean> {
+    const now = new Date();
+    const query = 'UPDATE projects SET is_deleted = true, deleted_at = ?, deleted_by = ?, updated_at = ? WHERE project_id = ?';
+    await db.execute(query, { params: [now, deletedBy, now, projectId] });
+    return true;
+  }
+
+  async restoreProject(projectId: string): Promise<boolean> {
+    const now = new Date();
+    const query = 'UPDATE projects SET is_deleted = false, deleted_at = ?, deleted_by = ?, updated_at = ? WHERE project_id = ?';
+    await db.execute(query, { params: [null, null, now, projectId] });
+    return true;
   }
 
   // Delete project
@@ -142,7 +209,7 @@ export class ProjectTeamRepository extends BaseRepository<ProjectTeamMember> {
       added_by: addedBy,
     };
 
-    const { query, params } = require('@/config').insert(this.tableName, memberData as Record<string, unknown>);
+    const { query, params } = insert(this.tableName, memberData as Record<string, unknown>);
     await db.execute(query, { params });
 
     return memberData as ProjectTeamMember;
@@ -150,9 +217,9 @@ export class ProjectTeamRepository extends BaseRepository<ProjectTeamMember> {
 
   // Get team members for a project
   async getProjectTeam(projectId: string): Promise<ProjectTeamMember[]> {
-    const query = 'SELECT * FROM project_team WHERE project_id = ? AND is_active = true';
+    const query = 'SELECT * FROM project_team WHERE project_id = ?';
     const result = await db.execute<ProjectTeamMember>(query, { params: [projectId] });
-    return result.rows;
+    return result.rows.filter((member) => member.is_active);
   }
 
   // Get user's role in a project
@@ -182,9 +249,9 @@ export class ProjectTeamRepository extends BaseRepository<ProjectTeamMember> {
 
   // Get projects for a user
   async getUserProjects(userId: string): Promise<ProjectTeamMember[]> {
-    const query = 'SELECT * FROM project_team WHERE member_id = ? AND is_active = true';
+    const query = 'SELECT * FROM project_team WHERE member_id = ?';
     const result = await db.execute<ProjectTeamMember>(query, { params: [userId] });
-    return result.rows;
+    return result.rows.filter((membership) => membership.is_active);
   }
 
   // Check if user is team member

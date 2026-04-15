@@ -6,9 +6,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { validateProjectFormData } from '@/lib/project-validation';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
@@ -22,8 +23,25 @@ export async function GET(
 
     const { projectId } = await params;
 
-    const project = await projectRepository.findById(projectId);
+    const project = await projectRepository.findById(projectId, { includeDeleted: true });
     if (!project) {
+      return NextResponse.json(
+        { success: false, error: 'Project not found' },
+        { status: 404 }
+      );
+    }
+
+    const membership = await projectTeamRepository.getMemberRole(projectId, user.user_id);
+    const isOwner = project.owner_id === user.user_id;
+
+    if (!isOwner && (!membership || !membership.is_active)) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    if (project.is_deleted && !isOwner) {
       return NextResponse.json(
         { success: false, error: 'Project not found' },
         { status: 404 }
@@ -64,9 +82,23 @@ export async function PATCH(
 
     const { projectId } = await params;
     const body = await request.json();
+    const validation = validateProjectFormData(body);
+
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted project fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const sanitizedBody = validation.sanitizedData;
 
     // Check if project exists
-    const project = await projectRepository.findById(projectId);
+    const project = await projectRepository.findById(projectId, { includeDeleted: true });
     if (!project) {
       return NextResponse.json(
         { success: false, error: 'Project not found' },
@@ -82,16 +114,23 @@ export async function PATCH(
       );
     }
 
+    if (project.is_deleted) {
+      return NextResponse.json(
+        { success: false, error: 'Restore the project before editing it' },
+        { status: 400 }
+      );
+    }
+
     // Update project
     const updatedProject = await projectRepository.updateProject(projectId, {
-      project_name: body.project_name,
-      description: body.description,
-      status: body.status,
+      project_name: sanitizedBody.project_name,
+      description: sanitizedBody.description,
+      status: sanitizedBody.status,
       project_leader_id: body.project_leader_id,
-      start_date: body.start_date ? new Date(body.start_date) : undefined,
-      target_end_date: body.target_end_date ? new Date(body.target_end_date) : undefined,
-      budget: body.budget ? parseFloat(body.budget) : undefined,
-      currency: body.currency,
+      start_date: sanitizedBody.start_date ? new Date(sanitizedBody.start_date) : null,
+      target_end_date: sanitizedBody.target_end_date ? new Date(sanitizedBody.target_end_date) : null,
+      budget: sanitizedBody.budget,
+      currency: sanitizedBody.currency,
     });
 
     return NextResponse.json({
@@ -122,9 +161,11 @@ export async function DELETE(
     }
 
     const { projectId } = await params;
+    const { searchParams } = new URL(request.url);
+    const permanent = searchParams.get('permanent') === 'true';
 
     // Check if project exists
-    const project = await projectRepository.findById(projectId);
+    const project = await projectRepository.findById(projectId, { includeDeleted: true });
     if (!project) {
       return NextResponse.json(
         { success: false, error: 'Project not found' },
@@ -140,12 +181,27 @@ export async function DELETE(
       );
     }
 
-    // Delete project
-    await projectRepository.deleteProject(projectId);
+    if (permanent) {
+      await projectRepository.deleteProject(projectId);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Project permanently deleted',
+      });
+    }
+
+    if (project.is_deleted) {
+      return NextResponse.json(
+        { success: false, error: 'Project is already in trash' },
+        { status: 400 }
+      );
+    }
+
+    await projectRepository.softDeleteProject(projectId, user.user_id);
 
     return NextResponse.json({
       success: true,
-      message: 'Project deleted successfully',
+      message: 'Project moved to trash',
     });
   } catch (error) {
     console.error('Error deleting project:', error);

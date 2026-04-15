@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FiUser, FiLock, FiLogOut, FiChevronDown } from 'react-icons/fi';
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { FiLock, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import ChangePasswordModal from './ChangePasswordModal';
+import { logoutUser } from '@/hooks/useAuth';
 
 interface UserMenuProps {
   user: {
@@ -19,8 +20,8 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -38,19 +39,12 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        router.push('/auth/login');
-        router.refresh();
-      } else {
-        console.error('Logout failed');
-      }
+      setIsLoggingOut(true);
+      setIsOpen(false);
+      await logoutUser();
     } catch (error) {
       console.error('Logout error:', error);
+      setIsLoggingOut(false);
     }
   };
 
@@ -71,7 +65,7 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   return (
     <>
-      <div className="relative z-50" ref={menuRef}>
+      <div className="relative z-[999]" ref={menuRef}>
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/30 transition-all duration-200 group"
@@ -79,9 +73,13 @@ export default function UserMenu({ user }: UserMenuProps) {
           {/* Avatar */}
           <div className="relative">
             {user.avatar_url ? (
-              <img
+              <Image
                 src={user.avatar_url}
                 alt={displayName}
+                loader={({ src }) => src}
+                unoptimized
+                width={36}
+                height={36}
                 className="w-9 h-9 rounded-full object-cover border-2 border-slate-600 group-hover:border-blue-500 transition-colors"
               />
             ) : (
@@ -109,7 +107,7 @@ export default function UserMenu({ user }: UserMenuProps) {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50">
+          <div className="absolute right-0 mt-2 w-64 bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[999]">
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-slate-700/50">
               <div className="flex items-center gap-3">
@@ -137,10 +135,11 @@ export default function UserMenu({ user }: UserMenuProps) {
 
               <button
                 onClick={handleLogout}
+                disabled={isLoggingOut}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
               >
                 <FiLogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
               </button>
             </div>
           </div>

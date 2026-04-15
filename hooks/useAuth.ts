@@ -21,6 +21,12 @@ let cachedUser: User | null = null;
 let cacheTime: number = 0;
 const CACHE_DURATION = 5000; // 5 seconds cache
 
+export function clearAuthCache() {
+  pendingRequest = null;
+  cachedUser = null;
+  cacheTime = 0;
+}
+
 async function fetchUser(): Promise<User | null> {
   // Return cached result if still valid
   if (cachedUser && Date.now() - cacheTime < CACHE_DURATION) {
@@ -40,7 +46,7 @@ async function fetchUser(): Promise<User | null> {
       });
 
       if (!response.ok) {
-        cachedUser = null;
+        clearAuthCache();
         return null;
       }
 
@@ -48,8 +54,8 @@ async function fetchUser(): Promise<User | null> {
       cachedUser = data.user;
       cacheTime = Date.now();
       return data.user;
-    } catch (err) {
-      cachedUser = null;
+    } catch {
+      clearAuthCache();
       return null;
     } finally {
       pendingRequest = null;
@@ -74,7 +80,7 @@ export function useAuth() {
       try {
         const userData = await fetchUser();
         setUser(userData);
-      } catch (err) {
+      } catch {
         setError('Failed to fetch user info');
         setUser(null);
       } finally {
@@ -91,4 +97,18 @@ export function useAuth() {
   }, []);
 
   return { user, loading, error };
+}
+
+export async function logoutUser(redirectTo = '/auth/login') {
+  const response = await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+  });
+
+  if (!response.ok && response.status !== 401) {
+    throw new Error('Logout failed');
+  }
+
+  clearAuthCache();
+  window.location.href = redirectTo;
 }

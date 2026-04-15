@@ -16,6 +16,12 @@ export interface Project {
   created_at: string;
   updated_at: string;
   created_by: string;
+  is_deleted: boolean;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  membership_role?: ProjectRole;
+  access_type?: 'owned' | 'member';
+  team_size?: number;
 }
 
 export interface ProjectFormData {
@@ -27,6 +33,18 @@ export interface ProjectFormData {
   target_end_date?: string;
   budget?: string;
   currency?: string;
+}
+
+export interface ProjectFormErrors {
+  project_name?: string;
+  description?: string;
+  status?: string;
+  project_code?: string;
+  start_date?: string;
+  target_end_date?: string;
+  budget?: string;
+  currency?: string;
+  form?: string;
 }
 
 export interface ProjectTeamMember {
@@ -49,3 +67,40 @@ export interface ProjectWithTeam extends Project {
 }
 
 export type ProjectRole = ProjectTeamMember['role'];
+
+export interface ProjectSummaryKpis {
+  total_projects: number;
+  owned_projects: number;
+  collaborating_projects: number;
+  active_projects: number;
+  completed_projects: number;
+  on_hold_projects: number;
+  deleted_projects: number;
+  total_budget: number;
+}
+
+export interface ProjectStatusChartDatum {
+  name: string;
+  value: number;
+}
+
+export interface ProjectBudgetChartDatum {
+  name: string;
+  budget: number;
+  status: Project['status'];
+}
+
+export interface ProjectTimelineChartDatum {
+  label: string;
+  created: number;
+  completed: number;
+}
+
+export interface ProjectSummaryResponse {
+  kpis: ProjectSummaryKpis;
+  status_distribution: ProjectStatusChartDatum[];
+  budget_distribution: ProjectBudgetChartDatum[];
+  timeline: ProjectTimelineChartDatum[];
+  recent_projects: Project[];
+  recent_deleted_projects: Project[];
+}

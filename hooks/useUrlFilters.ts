@@ -64,8 +64,8 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
       }
     });
 
-    return { page, limit, search, sortBy, sortOrder, filters, alwaysShowPagination };
-  }, [searchParams, defaultPage, defaultLimit, defaultSortBy, defaultSortOrder, alwaysShowPagination]);
+    return { page, limit, search, sortBy, sortOrder, filters };
+  }, [searchParams, defaultPage, defaultLimit, defaultSortBy, defaultSortOrder]);
 
   // Update URL with new params
   const updateParams = useCallback(

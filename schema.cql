@@ -111,6 +111,9 @@ CREATE TABLE IF NOT EXISTS projects (
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     created_by UUID,
+    is_deleted BOOLEAN,
+    deleted_at TIMESTAMP,
+    deleted_by UUID,
     PRIMARY KEY (project_id)
 );
 
