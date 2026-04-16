@@ -41,15 +41,17 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
   // Override create to handle composite key
   async create(data: Partial<ExpertTimeEstimate>, options?: any): Promise<ExpertTimeEstimate> {
     const estimate_id = TimeUuid.now().toString();
-    const { query, params } = require('@/config').insert(this.tableName, {
+    const estimateData = {
       ...data,
       estimate_id,
       estimated_at: new Date(),
       is_deleted: false,
-    } as Record<string, unknown>);
+    };
+
+    const { query, params } = require('@/config').insert(this.tableName, estimateData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
-    return data as ExpertTimeEstimate;
+    return estimateData as ExpertTimeEstimate;
   }
 
   // Override update to handle composite primary key (project_id, work_item_id, expert_id, estimate_id)
@@ -68,7 +70,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
 
     const { query, params } = require('@/config').update(
       this.tableName,
-      restData as Record<string, unknown>,
+      { ...restData, updated_at: new Date() } as Record<string, unknown>,
       whereClause,
       whereParams
     );
@@ -160,62 +162,51 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     const limit = options?.limit ?? 100;
     const includeDeleted = options?.includeDeleted ?? false;
     
-    let query = `SELECT * FROM expert_time_estimates WHERE project_id = ?`;
-    if (!includeDeleted) {
-      query += ` AND is_deleted = false`;
-    }
-    query += ` LIMIT ${limit}`;
-    
+    const query = `SELECT * FROM expert_time_estimates WHERE project_id = ? LIMIT ${limit}`;
     const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId] });
-    return result.rows;
+    
+    let estimates = result.rows;
+    if (!includeDeleted) {
+      estimates = estimates.filter(e => e.is_deleted === false || e.is_deleted === null);
+    }
+    
+    return estimates;
   }
 
   // Find estimates by work item
   async findByWorkItem(projectId: string, workItemId: string, includeDeleted = false): Promise<ExpertTimeEstimate[]> {
-    let query = 'SELECT * FROM expert_time_estimates WHERE project_id = ? AND work_item_id = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId, workItemId] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => String(e.work_item_id) === workItemId);
   }
 
   // Find estimates by expert
   async findByExpert(expertId: string, includeDeleted = false): Promise<ExpertTimeEstimate[]> {
-    let query = 'SELECT * FROM expert_time_estimates WHERE expert_id = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    query += ' ALLOW FILTERING';
+    let query = 'SELECT * FROM expert_time_estimates WHERE expert_id = ? ALLOW FILTERING';
     const result = await db.execute<ExpertTimeEstimate>(query, { params: [expertId] });
-    return result.rows;
+    
+    let estimates = result.rows;
+    if (!includeDeleted) {
+      estimates = estimates.filter(e => e.is_deleted === false || e.is_deleted === null);
+    }
+    return estimates;
   }
 
   // Find estimates by confidence level
   async findByConfidence(projectId: string, confidence: string, includeDeleted = false): Promise<ExpertTimeEstimate[]> {
-    let query = 'SELECT * FROM expert_time_estimates WHERE project_id = ? AND confidence_level = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId, confidence] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => e.confidence_level === confidence);
   }
 
   // Find estimates by estimation method
   async findByMethod(projectId: string, method: string, includeDeleted = false): Promise<ExpertTimeEstimate[]> {
-    let query = 'SELECT * FROM expert_time_estimates WHERE project_id = ? AND estimation_method = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId, method] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => e.estimation_method === method);
   }
 
   // Find deleted estimates (trash)
   async findDeleted(projectId: string): Promise<ExpertTimeEstimate[]> {
-    const query = 'SELECT * FROM expert_time_estimates WHERE project_id = ? AND is_deleted = true ALLOW FILTERING';
-    const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted: true, limit: 1000 });
+    return estimates.filter(e => e.is_deleted === true);
   }
 
   // Get project summary for an expert
@@ -235,14 +226,24 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     projectId: string,
     workItemId: string
   ): Promise<(ExpertTimeEstimate & { expert_name?: string })[]> {
-    const query = `
-      SELECT e.*, ex.name as expert_name 
-      FROM expert_time_estimates e
-      LEFT JOIN experts ex ON e.expert_id = ex.expert_id
-      WHERE e.project_id = ? AND e.work_item_id = ?
-    `;
-    const result = await db.execute<ExpertTimeEstimate>(query, { params: [projectId, workItemId] });
-    return result.rows;
+    const estimates = await this.findByWorkItem(projectId, workItemId);
+    
+    if (estimates.length === 0) return [];
+    
+    // Enrich with expert details
+    const expertIds = [...new Set(estimates.map(e => e.expert_id))];
+    const expertPromises = expertIds.map(id => db.execute('SELECT expert_id, name FROM experts WHERE expert_id = ?', { params: [id] }));
+    const expertResults = await Promise.all(expertPromises);
+    
+    const expertMap = new Map();
+    expertResults.forEach(res => {
+      if (res.rows[0]) expertMap.set(String(res.rows[0].expert_id), res.rows[0].name);
+    });
+    
+    return estimates.map(e => ({
+      ...e,
+      expert_name: expertMap.get(String(e.expert_id))
+    }));
   }
 
   // Get summary statistics for a project
@@ -257,7 +258,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
 
     const stats = {
       totalEstimates: estimates.length,
-      totalHours: estimates.reduce((sum, est) => sum + (est.estimated_hours || 0), 0),
+      totalHours: estimates.reduce((sum, est) => sum + (Number(est.estimated_hours) || 0), 0),
       averageConfidence: 'medium',
       estimatesByMethod: {} as Record<string, number>,
       estimatesByConfidence: {} as Record<string, number>,
@@ -275,7 +276,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     // Calculate average confidence
     const confidenceScores = { low: 1, medium: 2, high: 3 };
     const totalScore = estimates.reduce((sum, est) => {
-      return sum + (confidenceScores[est.confidence_level || 'medium'] || 2);
+      return sum + (confidenceScores[est.confidence_level as keyof typeof confidenceScores] || 2);
     }, 0);
 
     const avgScore = estimates.length > 0 ? totalScore / estimates.length : 2;

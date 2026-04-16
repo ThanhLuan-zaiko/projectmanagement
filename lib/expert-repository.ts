@@ -77,6 +77,31 @@ export class ExpertRepository extends BaseRepository<Expert> {
     return experts;
   }
 
+  // Find experts by project_id using the association table
+  async findByProjectId(projectId: string, options?: { limit?: number; isActive?: boolean }): Promise<Expert[]> {
+    // 1. Get associated expert IDs for this project
+    const associationQuery = 'SELECT expert_id FROM expert_project_summary WHERE project_id = ?';
+    const associationResult = await db.execute<{ expert_id: any }>(associationQuery, { params: [projectId] });
+    
+    if (associationResult.rows.length === 0) return [];
+    
+    const expertIds = associationResult.rows.map(r => r.expert_id);
+    
+    // 2. Fetch expert details using an IN query on the partition key (expert_id)
+    const placeholders = expertIds.map(() => '?').join(',');
+    const query = `SELECT * FROM experts WHERE expert_id IN (${placeholders})`;
+    const result = await db.execute<Expert>(query, { params: expertIds });
+    
+    let experts = result.rows;
+    
+    // 3. Apply status filter in JS (consistent with Tasks pattern)
+    if (options?.isActive !== undefined) {
+      experts = experts.filter(e => e.is_active === options.isActive);
+    }
+    
+    return experts;
+  }
+
   // Delete expert permanently from database
   async permanentDelete(id: string): Promise<boolean> {
     const query = 'DELETE FROM experts WHERE expert_id = ?';

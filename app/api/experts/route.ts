@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/config';
 
-// GET /api/experts?is_active=&availability_status=&search=&page=&limit=
+// GET /api/experts?project_id=&is_active=&availability_status=&search=&page=&limit=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -20,88 +20,55 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-
-    // Use default project_id if not provided
     const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
 
     // Filters
-    const isActive = searchParams.get('is_active');
+    const isActiveStr = searchParams.get('is_active');
+    const isActive = isActiveStr === 'true' ? true : isActiveStr === 'false' ? false : undefined;
     const availabilityStatus = searchParams.get('availability_status');
     const search = searchParams.get('search');
 
-    // Pagination
+    // Pagination & Sorting
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const offset = (page - 1) * limit;
-
-    // Fetch experts
-    let experts: any[] = [];
-
-    if (search) {
-      experts = await expertRepository.search(search);
-    } else if (isActive === 'true') {
-      // Only active experts
-      experts = await expertRepository.findActive();
-    } else if (isActive === 'false') {
-      // Only inactive experts
-      const allExperts = await expertRepository.findAllWithOptions({ limit: 1000 });
-      experts = allExperts.filter(e => e.is_active === false);
-    } else if (availabilityStatus) {
-      experts = await expertRepository.findAllWithOptions({
-        availabilityStatus: availabilityStatus,
-        limit: 1000,
-      });
-    } else {
-      // Default: fetch ALL experts (both active and inactive)
-      experts = await expertRepository.findAllWithOptions({ limit: 1000 });
-    }
-
-    // Filter by project_id - only return experts associated with the given project
-    const summaryResult = await db.execute(
-      'SELECT expert_id FROM expert_project_summary WHERE project_id = ?',
-      { params: [projectId] }
-    );
-    const projectExpertIds = new Set(summaryResult.rows.map((r: any) => r.expert_id));
-    experts = experts.filter((e: any) => projectExpertIds.has(e.expert_id));
-
-    // Apply sorting
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') || 'desc';
-    experts = experts.sort((a, b) => {
-      const aValue = (a as any)[sortBy];
-      const bValue = (b as any)[sortBy];
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      }
-      return aValue < bValue ? 1 : -1;
+
+    // 1. Fetch experts associated with this project using the new repository method
+    let experts = await expertRepository.findByProjectId(projectId, { 
+      limit: 1000, 
+      isActive 
     });
 
-    // Calculate total
+    // 2. Apply additional filters (Availability, Search)
+    if (availabilityStatus && availabilityStatus !== 'all') {
+      experts = experts.filter((e) => e.availability_status === availabilityStatus);
+    }
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      experts = experts.filter((e) => 
+        e.name?.toLowerCase().includes(searchLower) || 
+        (Array.isArray(e.specialization) && e.specialization.some((s: string) => s.toLowerCase().includes(searchLower)))
+      );
+    }
+
+    // 3. Apply sorting
+    experts.sort((a, b) => {
+      const aVal = (a as any)[sortBy] || '';
+      const bVal = (b as any)[sortBy] || '';
+      return sortOrder === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
+    });
+
+    // 4. Calculate total and paginate
     const total = experts.length;
-    const totalPages = Math.max(Math.ceil(total / limit), 1);
-
-    // Apply pagination
+    const totalPages = Math.ceil(total / limit) || 1;
     const paginatedExperts = experts.slice(offset, offset + limit);
-
-    // Format response
-    const formattedExperts = paginatedExperts.map(expert => ({
-      id: expert.expert_id,
-      expert_id: expert.expert_id,
-      name: expert.name,
-      email: expert.email,
-      specialization: expert.specialization || [],
-      experience_years: expert.experience_years,
-      hourly_rate: expert.hourly_rate,
-      currency: expert.currency,
-      availability_status: expert.availability_status,
-      rating: expert.rating,
-      is_active: expert.is_active,
-      created_at: expert.created_at,
-    }));
 
     return NextResponse.json({
       success: true,
-      data: formattedExperts,
+      data: paginatedExperts.map(e => ({ ...e, id: e.expert_id })),
       pagination: {
         page,
         limit,
@@ -113,10 +80,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching experts:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch experts' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -167,9 +131,19 @@ export async function POST(request: NextRequest) {
 
     const expert = await expertRepository.create(expertData);
 
+    // Associate expert with project in expert_project_summary
+    const projectId = body.project_id || '00000000-0000-0000-0000-000000000001';
+    
+    console.log(`Associating expert ${expertId} with project ${projectId}`);
+    
+    await db.execute(
+      'INSERT INTO expert_project_summary (project_id, expert_id, total_estimated_hours, total_work_items, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      { params: [projectId, expertId, 0, 0, new Date(), new Date()] }
+    );
+
     return NextResponse.json({
       success: true,
-      data: expert,
+      data: { ...expert, id: expertId },
       message: 'Expert created successfully',
     });
   } catch (error) {

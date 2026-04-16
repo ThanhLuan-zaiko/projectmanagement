@@ -73,6 +73,7 @@ export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstim
         ...(status && status !== 'all' && { status }),
         ...(includeDeleted && { include_deleted: 'true' }),
         ...(deletedOnly && { deleted_only: 'true' }),
+        t: Date.now().toString(),
       });
 
       const response = await fetch(`/api/cost-estimates?${params.toString()}`, {

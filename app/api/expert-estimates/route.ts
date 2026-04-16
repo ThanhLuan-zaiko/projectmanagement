@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
 
     // Apply server-side filtering
     if (expertId) {
-      estimates = estimates.filter((est) => est.expert_id === expertId);
+      estimates = estimates.filter((est) => String(est.expert_id) === expertId);
     }
 
     // Apply server-side filtering
     if (workItemId) {
-      estimates = estimates.filter((est) => est.work_item_id === workItemId);
+      estimates = estimates.filter((est) => String(est.work_item_id) === workItemId);
     }
     if (confidence !== 'all') {
       estimates = estimates.filter((est) => est.confidence_level === confidence);

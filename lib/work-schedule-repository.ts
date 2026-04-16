@@ -31,17 +31,19 @@ export class WorkScheduleRepository extends BaseRepository<WorkItemSchedule> {
 
   // Override create to handle composite key
   async create(data: Partial<WorkItemSchedule>, options?: any): Promise<WorkItemSchedule> {
-    const { query, params } = require('@/config').insert(this.tableName, {
+    const scheduleData = {
       ...data,
       scheduled_at: new Date(),
       updated_at: new Date(),
       is_deleted: false,
       dependencies: data.dependencies || [],
       is_critical_path: data.is_critical_path || false,
-    } as Record<string, unknown>);
+    };
+
+    const { query, params } = require('@/config').insert(this.tableName, scheduleData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
-    return data as WorkItemSchedule;
+    return scheduleData as WorkItemSchedule;
   }
 
   // Override update to handle composite primary key (project_id, work_item_id)
@@ -145,52 +147,40 @@ export class WorkScheduleRepository extends BaseRepository<WorkItemSchedule> {
     const limit = options?.limit ?? 100;
     const includeDeleted = options?.includeDeleted ?? false;
 
-    let query = `SELECT * FROM work_item_schedules WHERE project_id = ?`;
-    if (!includeDeleted) {
-      query += ` AND is_deleted = false`;
-    }
-    query += ` LIMIT ${limit}`;
-
+    const query = `SELECT * FROM work_item_schedules WHERE project_id = ? LIMIT ${limit}`;
     const result = await db.execute<WorkItemSchedule>(query, { params: [projectId] });
-    return result.rows;
+    
+    // Client-side filtering for consistency with Tasks pattern
+    let schedules = result.rows;
+    if (!includeDeleted) {
+      schedules = schedules.filter(s => s.is_deleted === false || s.is_deleted === null);
+    }
+    
+    return schedules;
   }
 
   // Find schedules by status
   async findByStatus(projectId: string, status: string, includeDeleted = false): Promise<WorkItemSchedule[]> {
-    let query = 'SELECT * FROM work_item_schedules WHERE project_id = ? AND status = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<WorkItemSchedule>(query, { params: [projectId, status] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return schedules.filter(s => s.status === status);
   }
 
   // Find schedules by schedule_id (project schedule)
   async findByScheduleId(projectId: string, scheduleId: string, includeDeleted = false): Promise<WorkItemSchedule[]> {
-    let query = 'SELECT * FROM work_item_schedules WHERE project_id = ? AND schedule_id = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<WorkItemSchedule>(query, { params: [projectId, scheduleId] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return schedules.filter(s => String(s.schedule_id) === scheduleId);
   }
 
   // Find critical path items
   async findCriticalPath(projectId: string, includeDeleted = false): Promise<WorkItemSchedule[]> {
-    let query = 'SELECT * FROM work_item_schedules WHERE project_id = ? AND is_critical_path = true';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    query += ' ALLOW FILTERING';
-    const result = await db.execute<WorkItemSchedule>(query, { params: [projectId] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return schedules.filter(s => s.is_critical_path === true);
   }
 
   // Find deleted schedules (trash)
   async findDeleted(projectId: string): Promise<WorkItemSchedule[]> {
-    const query = 'SELECT * FROM work_item_schedules WHERE project_id = ? AND is_deleted = true ALLOW FILTERING';
-    const result = await db.execute<WorkItemSchedule>(query, { params: [projectId] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted: true, limit: 1000 });
+    return schedules.filter(s => s.is_deleted === true);
   }
 
   // Get summary statistics for a project
@@ -218,7 +208,7 @@ export class WorkScheduleRepository extends BaseRepository<WorkItemSchedule> {
       stats.schedulesByStatus[status] = (stats.schedulesByStatus[status] || 0) + 1;
 
       if (schedule.completion_percentage !== null) {
-        totalCompletion += schedule.completion_percentage;
+        totalCompletion += Number(schedule.completion_percentage);
         completionCount++;
       }
 

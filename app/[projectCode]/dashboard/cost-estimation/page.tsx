@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useCostEstimates } from '@/hooks/useCostEstimates';
@@ -98,7 +98,15 @@ function CostEstimatesContent() {
     handleSubmit: handleFormSubmit,
     handleChange,
     handleEdit,
+    setFormData,
   } = useCostEstimateForm(refreshData);
+
+  // Sync project_id from context to form
+  useEffect(() => {
+    if (project?.project_id) {
+      setFormData(prev => ({ ...prev, project_id: project.project_id }));
+    }
+  }, [project?.project_id, setFormData]);
 
   const {
     showDeleteModal,
@@ -250,37 +258,20 @@ function CostEstimatesContent() {
             </>
           )}
 
-          {/* Estimates List */}
-          {estimatesLoading ? (
-            <CostEstimateSkeleton />
-          ) : (
-            <>
-              <CostEstimateList
-                estimates={estimates}
-                loading={false}
-                deletingId={null}
-                hasFilters={hasActiveFilters}
-                onCreateEstimate={activeTab === 'trash' ? undefined : handleCreate}
-                onView={(estimate) => setViewingEstimate(estimate)}
-                onEdit={activeTab === 'trash' ? undefined : handleEditWithModal}
-                onDelete={handleDelete}
-                onRestore={activeTab === 'trash' ? handleRestore : undefined}
-                isRestoringId={isRestoringItem ? itemToDelete?.estimate_id || null : null}
-              />
-
-              {/* Pagination */}
-              <div className="mt-6">
-                <TablePagination
-                  currentPage={pagination.page}
-                  totalPages={pagination.totalPages}
-                  totalItems={pagination.total}
-                  limit={urlFilters.limit}
-                  onPageChange={urlFilters.setPage}
-                  alwaysShow={true}
-                />
-              </div>
-            </>
-          )}
+          {/* Estimates List - FORCE RENDER */}
+          <CostEstimateList
+            key={JSON.stringify(estimates)}
+            estimates={estimates}
+            loading={false}
+            deletingId={null}
+            hasFilters={hasActiveFilters}
+            onCreateEstimate={activeTab === 'trash' ? undefined : handleCreate}
+            onView={(estimate) => setViewingEstimate(estimate)}
+            onEdit={activeTab === 'trash' ? undefined : handleEditWithModal}
+            onDelete={handleDelete}
+            onRestore={activeTab === 'trash' ? handleRestore : undefined}
+            isRestoringId={isRestoringItem ? itemToDelete?.estimate_id || null : null}
+          />
         </div>
       </div>
 

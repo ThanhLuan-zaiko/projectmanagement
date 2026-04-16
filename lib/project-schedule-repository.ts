@@ -4,9 +4,10 @@ import { db } from '@/config';
 const { TimeUuid } = require('cassandra-driver').types;
 
 export interface ProjectSchedule extends Record<string, unknown> {
-  schedule_id: string;
   project_id: string;
+  schedule_id: string;
   schedule_name: string;
+  description: string | null;
   schedule_type: 'phase' | 'milestone' | 'sprint' | 'release';
   start_date: Date;
   end_date: Date;
@@ -17,7 +18,6 @@ export interface ProjectSchedule extends Record<string, unknown> {
   parent_schedule_id: string | null;
   created_at: Date;
   updated_at: Date;
-  created_by: string | null;
   is_deleted: boolean;
   deleted_at: Date | null;
   deleted_by: string | null;
@@ -40,17 +40,19 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
       plannedDurationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    const { query, params } = require('@/config').insert(this.tableName, {
+    const scheduleData = {
       ...data,
       schedule_id,
       planned_duration_days: plannedDurationDays,
       created_at: new Date(),
       updated_at: new Date(),
       is_deleted: false,
-    } as Record<string, unknown>);
+    };
+
+    const { query, params } = require('@/config').insert(this.tableName, scheduleData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
-    return data as ProjectSchedule;
+    return scheduleData as ProjectSchedule;
   }
 
   // Override update to handle composite primary key (project_id, schedule_id)
@@ -60,14 +62,6 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
 
     if (!projectId) {
       throw new Error('project_id is required to update project schedules');
-    }
-
-    // Calculate duration if dates are provided
-    if (data.start_date && data.end_date) {
-      const startDate = new Date(data.start_date);
-      const endDate = new Date(data.end_date);
-      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-      restData.planned_duration_days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
     const whereClause = 'project_id = ? AND schedule_id = ?';
@@ -161,58 +155,39 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
     const limit = options?.limit ?? 100;
     const includeDeleted = options?.includeDeleted ?? false;
 
-    let query = `SELECT * FROM project_schedules WHERE project_id = ?`;
-    if (!includeDeleted) {
-      query += ` AND is_deleted = false`;
-    }
-    query += ` LIMIT ${limit}`;
-
+    const query = `SELECT * FROM project_schedules WHERE project_id = ? LIMIT ${limit}`;
     const result = await db.execute<ProjectSchedule>(query, { params: [projectId] });
-    return result.rows;
+    
+    let schedules = result.rows;
+    if (!includeDeleted) {
+      schedules = schedules.filter(s => s.is_deleted === false || s.is_deleted === null);
+    }
+    
+    return schedules;
   }
 
   // Find schedules by type
-  async findByType(projectId: string, scheduleType: string, includeDeleted = false): Promise<ProjectSchedule[]> {
-    let query = 'SELECT * FROM project_schedules WHERE project_id = ? AND schedule_type = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ProjectSchedule>(query, { params: [projectId, scheduleType] });
-    return result.rows;
+  async findByType(projectId: string, type: string, includeDeleted = false): Promise<ProjectSchedule[]> {
+    const schedules = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return schedules.filter(s => s.schedule_type === type);
   }
 
   // Find schedules by status
   async findByStatus(projectId: string, status: string, includeDeleted = false): Promise<ProjectSchedule[]> {
-    let query = 'SELECT * FROM project_schedules WHERE project_id = ? AND status = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ProjectSchedule>(query, { params: [projectId, status] });
-    return result.rows;
-  }
-
-  // Find schedules by parent
-  async findByParentScheduleId(projectId: string, parentScheduleId: string, includeDeleted = false): Promise<ProjectSchedule[]> {
-    let query = 'SELECT * FROM project_schedules WHERE project_id = ? AND parent_schedule_id = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<ProjectSchedule>(query, { params: [projectId, parentScheduleId] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return schedules.filter(s => s.status === status);
   }
 
   // Find deleted schedules (trash)
   async findDeleted(projectId: string): Promise<ProjectSchedule[]> {
-    const query = 'SELECT * FROM project_schedules WHERE project_id = ? AND is_deleted = true ALLOW FILTERING';
-    const result = await db.execute<ProjectSchedule>(query, { params: [projectId] });
-    return result.rows;
+    const schedules = await this.findByProjectId(projectId, { includeDeleted: true, limit: 1000 });
+    return schedules.filter(s => s.is_deleted === true);
   }
 
   // Get summary statistics for a project
   async getProjectStatistics(projectId: string): Promise<{
     totalSchedules: number;
     schedulesByType: Record<string, number>;
-    schedulesByStatus: Record<string, number>;
     averageProgress: number;
   }> {
     const schedules = await this.findByProjectId(projectId, { limit: 1000 });
@@ -220,23 +195,18 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
     const stats = {
       totalSchedules: schedules.length,
       schedulesByType: {} as Record<string, number>,
-      schedulesByStatus: {} as Record<string, number>,
       averageProgress: 0,
     };
 
-    // Count by type and status
     let totalProgress = 0;
     let progressCount = 0;
-    
+
     schedules.forEach(schedule => {
       const type = schedule.schedule_type || 'unknown';
       stats.schedulesByType[type] = (stats.schedulesByType[type] || 0) + 1;
 
-      const status = schedule.status || 'unknown';
-      stats.schedulesByStatus[status] = (stats.schedulesByStatus[status] || 0) + 1;
-
       if (schedule.progress_percentage !== null) {
-        totalProgress += schedule.progress_percentage;
+        totalProgress += Number(schedule.progress_percentage);
         progressCount++;
       }
     });

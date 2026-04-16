@@ -127,7 +127,10 @@ function ExpertsContent() {
       if (editingItem) {
         success = await updateExpert(editingItem.expert_id, formData);
       } else {
-        success = await createExpert(formData);
+        success = await createExpert({
+          ...formData,
+          project_id: project?.project_id,
+        } as any);
       }
 
       if (success) {
@@ -178,7 +181,6 @@ function ExpertsContent() {
     setDeletingId(expert.expert_id);
     try {
       const success = await updateExpert(expert.expert_id, {
-        ...formData,
         name: expert.name,
         email: expert.email || '',
         specialization: Array.isArray(expert.specialization) ? expert.specialization.join(', ') : (expert.specialization || ''),
@@ -203,7 +205,6 @@ function ExpertsContent() {
     try {
       // Soft delete (deactivate)
       const success = await updateExpert(expert.expert_id, {
-        ...formData,
         name: expert.name,
         email: expert.email || '',
         specialization: Array.isArray(expert.specialization) ? expert.specialization.join(', ') : (expert.specialization || ''),

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { expertRepository } from '@/lib/expert-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { db } from '@/config';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -133,8 +134,29 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     if (permanent) {
-      // Hard delete - permanently remove from database
+      // 1. Find all project associations for this expert
+      try {
+        const associations = await db.execute(
+          'SELECT project_id FROM expert_project_summary WHERE expert_id = ? ALLOW FILTERING',
+          { params: [id] }
+        );
+        
+        // 2. Clear associations from summary table using explicit keys
+        if (associations.rows.length > 0) {
+          for (const row of associations.rows) {
+            await db.execute(
+              'DELETE FROM expert_project_summary WHERE project_id = ? AND expert_id = ?',
+              { params: [row.project_id, id] }
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Failed to clean up associations:', err);
+      }
+
+      // 3. Permanent delete from experts table
       await expertRepository.permanentDelete(id);
+      
       return NextResponse.json({
         success: true,
         message: 'Expert permanently deleted',

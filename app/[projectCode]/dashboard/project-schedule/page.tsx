@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useProjectSchedules } from '@/hooks/useProjectSchedules';
@@ -97,7 +97,15 @@ function ProjectSchedulesContent() {
     handleChange,
     handleEdit,
     calculateDuration,
+    setFormData,
   } = useProjectScheduleForm(refreshData);
+
+  // Sync project_id from context to form
+  useEffect(() => {
+    if (project?.project_id) {
+      setFormData(prev => ({ ...prev, project_id: project.project_id }));
+    }
+  }, [project?.project_id, setFormData]);
 
   const {
     showDeleteModal,

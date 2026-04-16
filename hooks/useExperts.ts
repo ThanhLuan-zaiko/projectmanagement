@@ -109,20 +109,14 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   }, [fetchExperts]);
 
   // Create expert
-  const createExpert = useCallback(async (data: ExpertFormData): Promise<boolean> => {
+  const createExpert = useCallback(async (data: any): Promise<boolean> => {
     try {
       const response = await fetch('/api/experts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email || null,
-          specialization: data.specialization,
-          experience_years: data.experience_years || null,
-          hourly_rate: data.hourly_rate || null,
-          currency: data.currency || 'USD',
-          availability_status: data.availability_status || 'available',
-          is_active: data.is_active !== undefined ? data.is_active : true,
+          ...data,
+          project_id: data.project_id || projectId,
         }),
       });
 
@@ -132,23 +126,17 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
       console.error('Failed to create expert:', err);
       return false;
     }
-  }, []);
+  }, [projectId]);
 
   // Update expert
-  const updateExpert = useCallback(async (id: string, data: ExpertFormData): Promise<boolean> => {
+  const updateExpert = useCallback(async (id: string, data: any): Promise<boolean> => {
     try {
       const response = await fetch(`/api/experts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email || null,
-          specialization: data.specialization,
-          experience_years: data.experience_years || null,
-          hourly_rate: data.hourly_rate || null,
-          currency: data.currency || 'USD',
-          availability_status: data.availability_status || 'available',
-          is_active: data.is_active !== undefined ? data.is_active : true,
+          ...data,
+          project_id: data.project_id || projectId,
         }),
       });
 
@@ -158,7 +146,7 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
       console.error('Failed to update expert:', err);
       return false;
     }
-  }, []);
+  }, [projectId]);
 
   // Delete expert (soft delete - sets is_active to false)
   const deleteExpert = useCallback(async (id: string): Promise<boolean> => {

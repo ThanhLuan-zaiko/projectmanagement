@@ -9,7 +9,7 @@ export interface CostEstimate extends Record<string, unknown> {
   estimate_id: string;
   estimate_type: 'labor' | 'material' | 'service' | 'overhead' | 'license';
   estimated_cost: number | null;
-  currency: string;
+  currency: string | null;
   hourly_rate: number | null;
   hours: number | null;
   quantity: number | null;
@@ -25,20 +25,6 @@ export interface CostEstimate extends Record<string, unknown> {
   deleted_by: string | null;
 }
 
-export interface ProjectCostSummary extends Record<string, unknown> {
-  project_id: string;
-  estimate_type: string;
-  total_cost: number | null;
-  currency: string;
-  labor_cost: number | null;
-  material_cost: number | null;
-  overhead_cost: number | null;
-  license_cost: number | null;
-  contingency: number | null;
-  calculated_at: Date;
-  calculated_by: string | null;
-}
-
 export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   protected tableName = 'cost_estimates';
   protected primaryKey = 'estimate_id';
@@ -46,15 +32,17 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   // Override create to handle composite key
   async create(data: Partial<CostEstimate>, options?: any): Promise<CostEstimate> {
     const estimate_id = TimeUuid.now().toString();
-    const { query, params } = require('@/config').insert(this.tableName, {
+    const estimateData = {
       ...data,
       estimate_id,
       estimated_at: new Date(),
       is_deleted: false,
-    } as Record<string, unknown>);
+    };
+
+    const { query, params } = require('@/config').insert(this.tableName, estimateData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
-    return data as CostEstimate;
+    return estimateData as CostEstimate;
   }
 
   // Override update to handle composite primary key (project_id, work_item_id, estimate_id)
@@ -72,7 +60,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
 
     const { query, params } = require('@/config').update(
       this.tableName,
-      restData as Record<string, unknown>,
+      { ...restData, updated_at: new Date() } as Record<string, unknown>,
       whereClause,
       whereParams
     );
@@ -146,7 +134,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   // Override findById to handle composite key
   async findById(id: string, options?: { params?: [string, string] }): Promise<CostEstimate | null> {
     const [projectId, workItemId] = options?.params || [];
-
+    
     if (!projectId || !workItemId) {
       throw new Error('project_id and work_item_id are required in options.params to find cost estimate');
     }
@@ -158,69 +146,44 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
 
   // Find estimates by project
   async findByProjectId(projectId: string, options?: { limit?: number; includeDeleted?: boolean }): Promise<CostEstimate[]> {
-    const limit = options?.limit ?? 100;
-    const includeDeleted = options?.includeDeleted ?? false;
-
-    let query = `SELECT * FROM cost_estimates WHERE project_id = ?`;
-    if (!includeDeleted) {
-      query += ` AND is_deleted = false`;
-    }
-    query += ` LIMIT ${limit}`;
-
+    const limit = options?.limit ?? 1000;
+    
+    // Chỉ truy vấn bằng Partition Key (project_id)
+    const query = `SELECT * FROM cost_estimates WHERE project_id = ? LIMIT ${limit}`;
     const result = await db.execute<CostEstimate>(query, { params: [projectId] });
-    return result.rows;
+    
+    let estimates = result.rows;
+    
+    // Lọc bằng JS để đảm bảo an toàn và nhất quán
+    if (options?.includeDeleted !== true) {
+      estimates = estimates.filter(e => e.is_deleted === false || e.is_deleted === null);
+    }
+    
+    return estimates;
   }
 
   // Find estimates by work item
   async findByWorkItem(projectId: string, workItemId: string, includeDeleted = false): Promise<CostEstimate[]> {
-    let query = 'SELECT * FROM cost_estimates WHERE project_id = ? AND work_item_id = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<CostEstimate>(query, { params: [projectId, workItemId] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => String(e.work_item_id) === workItemId);
   }
 
   // Find estimates by type
-  async findByType(projectId: string, estimateType: string, includeDeleted = false): Promise<CostEstimate[]> {
-    let query = 'SELECT * FROM cost_estimates WHERE project_id = ? AND estimate_type = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<CostEstimate>(query, { params: [projectId, estimateType] });
-    return result.rows;
+  async findByType(projectId: string, type: string, includeDeleted = false): Promise<CostEstimate[]> {
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => e.estimate_type === type);
   }
 
   // Find estimates by status
   async findByStatus(projectId: string, status: string, includeDeleted = false): Promise<CostEstimate[]> {
-    let query = 'SELECT * FROM cost_estimates WHERE project_id = ? AND status = ?';
-    if (!includeDeleted) {
-      query += ' AND is_deleted = false';
-    }
-    const result = await db.execute<CostEstimate>(query, { params: [projectId, status] });
-    return result.rows;
+    const estimates = await this.findByProjectId(projectId, { includeDeleted, limit: 1000 });
+    return estimates.filter(e => e.status === status);
   }
 
   // Find deleted estimates (trash)
   async findDeleted(projectId: string): Promise<CostEstimate[]> {
-    const query = 'SELECT * FROM cost_estimates WHERE project_id = ? AND is_deleted = true ALLOW FILTERING';
-    const result = await db.execute<CostEstimate>(query, { params: [projectId] });
-    return result.rows;
-  }
-
-  // Get project cost summary
-  async getProjectSummary(projectId: string): Promise<ProjectCostSummary[]> {
-    const query = 'SELECT * FROM project_cost_summary WHERE project_id = ?';
-    const result = await db.execute<ProjectCostSummary>(query, { params: [projectId] });
-    return result.rows;
-  }
-
-  // Calculate total estimated cost for a work item
-  async getTotalForWorkItem(projectId: string, workItemId: string): Promise<number> {
-    const query = 'SELECT estimated_cost FROM cost_estimates WHERE project_id = ? AND work_item_id = ? AND is_deleted = false';
-    const result = await db.execute<CostEstimate>(query, { params: [projectId, workItemId] });
-    
-    return result.rows.reduce((sum, estimate) => sum + (estimate.estimated_cost || 0), 0);
+    const estimates = await this.findByProjectId(projectId, { includeDeleted: true, limit: 1000 });
+    return estimates.filter(e => e.is_deleted === true);
   }
 
   // Get summary statistics for a project
@@ -234,12 +197,11 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
 
     const stats = {
       totalEstimates: estimates.length,
-      totalCost: estimates.reduce((sum, est) => sum + (est.estimated_cost || 0), 0),
+      totalCost: estimates.reduce((sum, est) => sum + (Number(est.estimated_cost) || 0), 0),
       estimatesByType: {} as Record<string, number>,
       estimatesByStatus: {} as Record<string, number>,
     };
 
-    // Count by type and status
     estimates.forEach(est => {
       const type = est.estimate_type || 'unknown';
       stats.estimatesByType[type] = (stats.estimatesByType[type] || 0) + 1;

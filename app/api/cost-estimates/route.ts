@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Apply server-side filtering
     if (workItemId) {
-      estimates = estimates.filter((est) => est.work_item_id === workItemId);
+      estimates = estimates.filter((est) => String(est.work_item_id) === workItemId);
     }
     if (estimateType !== 'all') {
       estimates = estimates.filter((est) => est.estimate_type === estimateType);
@@ -90,7 +90,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: paginatedItems,
+      data: paginatedItems.map(e => ({ 
+        ...e, 
+        estimate_id: e.estimate_id || e.id,
+        id: e.estimate_id || e.id,
+        _id: e.estimate_id || e.id,
+        key: e.estimate_id || e.id
+      })),
       pagination: {
         page,
         limit,
