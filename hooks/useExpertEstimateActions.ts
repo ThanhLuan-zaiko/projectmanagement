@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { ExpertTimeEstimate } from '@/types/expert-estimate';
+import { apiFetch } from '@/utils/api-client';
 
 export function useExpertEstimateActions(onSuccess?: () => void) {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function useExpertEstimateActions(onSuccess?: () => void) {
         ? `/api/expert-estimates/${itemToDelete.estimate_id}?permanent=true`
         : `/api/expert-estimates/${itemToDelete.estimate_id}`;
         
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,7 +55,7 @@ export function useExpertEstimateActions(onSuccess?: () => void) {
   const handleRestore = async (item: ExpertTimeEstimate) => {
     setIsRestoringItem(true);
     try {
-      const response = await fetch(`/api/expert-estimates/${item.estimate_id}/restore`, {
+      const response = await apiFetch(`/api/expert-estimates/${item.estimate_id}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

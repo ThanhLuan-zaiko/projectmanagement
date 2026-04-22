@@ -3,19 +3,8 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-
-interface Project {
-  project_id: string;
-  project_code: string;
-  project_name: string;
-  description: string;
-  status: string;
-  project_leader_id: string | null;
-  owner_id: string;
-  currency: string;
-  budget: number | null;
-  team_members?: any[];
-}
+import { apiFetch } from '@/utils/api-client';
+import type { Project } from '@/types/project';
 
 interface ProjectContextType {
   project: Project | null;
@@ -48,7 +37,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push(`/auth/login?redirect=/${projectCode}/dashboard`);
+      router.replace(`/auth/login?redirect=/${projectCode}/dashboard`);
     }
   }, [user, authLoading, router, projectCode]);
 
@@ -61,29 +50,23 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         setIsLoading(true);
         setError(null);
 
-        // First try to join/access the project
-        const joinResponse = await fetch('/api/projects/join', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ project_code: projectCode }),
-        });
+        const projectResponse = await apiFetch(
+          `/api/projects/access?project_code=${encodeURIComponent(projectCode)}`,
+          {
+            cache: 'no-store',
+          }
+        );
+        const projectData = (await projectResponse.json()) as {
+          success?: boolean;
+          data?: Project;
+          error?: string;
+        };
 
-        const joinData = await joinResponse.json();
-
-        if (!joinResponse.ok || !joinData.success) {
-          setError(joinData.error || 'Project not found');
-          setProject(null);
-          return;
-        }
-
-        // Fetch full project details
-        const projectResponse = await fetch(`/api/projects/${joinData.data.project.project_id}`);
-        const projectData = await projectResponse.json();
-
-        if (projectData.success) {
-          setProject(projectData.data);
+        if (projectResponse.ok && projectData.success) {
+          setProject(projectData.data ?? null);
         } else {
-          setError('Failed to load project details');
+          setError(projectData.error || 'Failed to load project details');
+          setProject(null);
         }
       } catch (err) {
         console.error('Error loading project:', err);
@@ -123,7 +106,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
           <h2 className="text-xl font-semibold text-white mb-2">Project Not Found</h2>
           <p className="text-slate-400 mb-6">{error || 'Unable to load project'}</p>
           <button
-            onClick={() => router.push('/projects')}
+            onClick={() => router.push('/projects/workspace')}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
           >
             Back to Projects

@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { expertEstimateRepository } from '@/lib/expert-estimate-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateExpertEstimatePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,29 +17,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateExpertEstimatePayload(body, 'update');
 
-    if (!body.project_id || !body.work_item_id || !body.expert_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID, Work Item ID, and Expert ID are required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted expert estimate fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    const workItemId = String(sanitizedBody.work_item_id);
+    const expertId = String(sanitizedBody.expert_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const estimate = await expertEstimateRepository.findById(id, { params: [body.project_id, body.work_item_id, body.expert_id] });
+    const estimate = await expertEstimateRepository.findById(id, { params: [projectId, workItemId, expertId] });
 
     if (!estimate) {
-      return NextResponse.json(
-        { success: false, error: 'Expert estimate not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Expert estimate not found');
     }
 
     if (!estimate.is_deleted) {
@@ -47,9 +55,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await expertEstimateRepository.restore(id, {
-      project_id: body.project_id,
-      work_item_id: body.work_item_id,
-      expert_id: body.expert_id,
+      project_id: projectId,
+      work_item_id: workItemId,
+      expert_id: expertId,
     });
 
     return NextResponse.json({
@@ -57,10 +65,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       message: 'Expert estimate restored successfully',
     });
   } catch (error) {
-    console.error('Error restoring expert estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to restore expert estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to restore expert estimate');
   }
 }

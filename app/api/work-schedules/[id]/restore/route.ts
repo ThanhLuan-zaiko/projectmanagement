@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workScheduleRepository } from '@/lib/work-schedule-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateWorkSchedulePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,31 +17,42 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkSchedulePayload(body, 'update');
 
-    if (!body.project_id) {
-      return NextResponse.json({ success: false, error: 'Project ID is required' }, { status: 400 });
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted work schedule fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const schedule = await workScheduleRepository.findById(id, { params: [body.project_id] });
+    const schedule = await workScheduleRepository.findById(id, { params: [projectId] });
 
     if (!schedule) {
-      return NextResponse.json({ success: false, error: 'Work schedule not found' }, { status: 404 });
+      return errorResponse(404, 'Work schedule not found');
     }
 
     if (!schedule.is_deleted) {
       return NextResponse.json({ success: false, error: 'Work schedule is not deleted' }, { status: 400 });
     }
 
-    await workScheduleRepository.restore(id, { project_id: body.project_id });
+    await workScheduleRepository.restore(id, { project_id: projectId });
 
     return NextResponse.json({ success: true, message: 'Work schedule restored successfully' });
   } catch (error) {
-    console.error('Error restoring work schedule:', error);
-    return NextResponse.json({ success: false, error: 'Failed to restore work schedule' }, { status: 500 });
+    return handleRouteError(error, 'Failed to restore work schedule');
   }
 }

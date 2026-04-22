@@ -11,7 +11,7 @@ interface TaskListProps {
   onView: (item: WorkItem) => void;
   onEdit: (item: WorkItem) => void;
   onDelete: (item: WorkItem) => void;
-  onRestore: (id: string) => void;
+  onRestore: (item: WorkItem) => void;
 }
 
 export default function TaskList({

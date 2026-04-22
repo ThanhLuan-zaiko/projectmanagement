@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workItemRepository } from '@/lib/work-item-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateWorkItemPayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -13,20 +16,32 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const workItem = await workItemRepository.findById(id);
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkItemPayload(body, 'update');
+
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted task fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
+
+    const workItem = await workItemRepository.findById(id, { params: [projectId] });
 
     if (!workItem) {
-      return NextResponse.json(
-        { success: false, error: 'Work item not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Work item not found');
     }
 
     if (workItem.status !== 'cancelled') {
@@ -38,7 +53,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Restore by changing status from cancelled to todo
     const restoredWorkItem = await workItemRepository.update(id, {
-      project_id: workItem.project_id,
+      project_id: projectId,
       status: 'todo',
     });
 
@@ -48,10 +63,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       message: 'Work item restored successfully',
     });
   } catch (error) {
-    console.error('Error restoring work item:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to restore work item' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to restore work item');
   }
 }

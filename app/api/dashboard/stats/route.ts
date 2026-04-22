@@ -5,20 +5,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/config';
 import { WorkItem } from '@/lib/work-item-repository';
+import { errorResponse, handleRouteError } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
 
 // GET /api/dashboard/stats?project_id=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
+    const projectId = searchParams.get('project_id');
+
+    if (!projectId) {
+      return errorResponse(400, 'Project ID is required');
+    }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     // Fetch all work items for the project
     const workItemsQuery = `
@@ -304,10 +308,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch dashboard statistics' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch dashboard statistics');
   }
 }

@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WorkItem } from '@/types/work-item';
+import { apiFetch } from '@/utils/api-client';
 
 interface UseAllWorkItemsOptions {
   projectId?: string;
@@ -24,6 +25,13 @@ export function useAllWorkItems(options: UseAllWorkItemsOptions = {}): UseAllWor
   const [error, setError] = useState<string | null>(null);
 
   const fetchWorkItems = useCallback(async () => {
+    if (!projectId) {
+      setWorkItems([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -33,9 +41,9 @@ export function useAllWorkItems(options: UseAllWorkItemsOptions = {}): UseAllWor
         limit: '1000', // Fetch all
       });
 
-      if (projectId) params.set('project_id', projectId);
+      params.set('project_id', projectId);
 
-      const response = await fetch(`/api/work-items?${params.toString()}`, {
+      const response = await apiFetch(`/api/work-items?${params.toString()}`, {
         cache: 'no-store',
       });
       const data = await response.json();

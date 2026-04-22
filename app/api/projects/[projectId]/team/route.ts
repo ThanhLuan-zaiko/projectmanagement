@@ -5,8 +5,11 @@
 // DELETE - Remove team member
 
 import { NextRequest, NextResponse } from 'next/server';
-import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
+import { projectTeamRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateTeamMemberPayload } from '@/lib/dashboard-validation';
 
 export async function GET(
   request: NextRequest,
@@ -15,22 +18,11 @@ export async function GET(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
-
-    // Check if project exists
-    const project = await projectRepository.findById(projectId);
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     // Get team members
     const teamMembers = await projectTeamRepository.getProjectTeam(projectId);
@@ -40,11 +32,7 @@ export async function GET(
       data: teamMembers,
     });
   } catch (error) {
-    console.error('Error fetching team members:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch team members' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch team members');
   }
 }
 
@@ -55,47 +43,36 @@ export async function POST(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
 
-    // Check if project exists
-    const project = await projectRepository.findById(projectId);
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
+    await requireProjectAccess(projectId, user.user_id, 'manage');
 
-    // Check if user has permission to add members (owner or manager)
-    const currentUserRole = await projectTeamRepository.getMemberRole(projectId, user.user_id);
-    if (!currentUserRole || !['owner', 'manager'].includes(currentUserRole.role)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
+    const validation = validateTeamMemberPayload(body, 'create');
 
-    if (!body.member_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Member ID is required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted team fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
 
     // Add team member
     const teamMember = await projectTeamRepository.addMember(
       projectId,
-      body.member_id,
-      body.role || 'member',
+      String(sanitizedBody.member_id),
+      (sanitizedBody.role as 'owner' | 'manager' | 'member' | 'viewer') || 'member',
       user.user_id,
-      body.permissions || []
+      (sanitizedBody.permissions as string[] | undefined) || []
     );
 
     return NextResponse.json({
@@ -104,11 +81,7 @@ export async function POST(
       message: 'Team member added successfully',
     });
   } catch (error) {
-    console.error('Error adding team member:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to add team member' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to add team member');
   }
 }
 
@@ -119,36 +92,33 @@ export async function PATCH(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    await requireProjectAccess(projectId, user.user_id, 'manage');
 
-    if (!body.member_id || !body.role) {
+    const validation = validateTeamMemberPayload(body, 'updateRole');
+
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Member ID and role are required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted team fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
-
-    // Check if user has permission
-    const currentUserRole = await projectTeamRepository.getMemberRole(projectId, user.user_id);
-    if (!currentUserRole || !['owner', 'manager'].includes(currentUserRole.role)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
+    const sanitizedBody = validation.sanitizedData;
 
     // Update role
     const updatedMember = await projectTeamRepository.updateMemberRole(
       projectId,
-      body.member_id,
-      body.role
+      String(sanitizedBody.member_id),
+      sanitizedBody.role as 'owner' | 'manager' | 'member' | 'viewer'
     );
 
     return NextResponse.json({
@@ -157,11 +127,7 @@ export async function PATCH(
       message: 'Team member role updated',
     });
   } catch (error) {
-    console.error('Error updating team member:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update team member' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to update team member');
   }
 }
 
@@ -172,29 +138,19 @@ export async function DELETE(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
     const { searchParams } = new URL(request.url);
     const memberId = searchParams.get('member_id');
+    requireCsrf(request);
+    await requireProjectAccess(projectId, user.user_id, 'manage');
 
     if (!memberId) {
       return NextResponse.json(
         { success: false, error: 'Member ID is required' },
         { status: 400 }
-      );
-    }
-
-    // Check if user has permission
-    const currentUserRole = await projectTeamRepository.getMemberRole(projectId, user.user_id);
-    if (!currentUserRole || !['owner', 'manager'].includes(currentUserRole.role)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
       );
     }
 
@@ -206,10 +162,6 @@ export async function DELETE(
       message: 'Team member removed successfully',
     });
   } catch (error) {
-    console.error('Error removing team member:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to remove team member' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to remove team member');
   }
 }

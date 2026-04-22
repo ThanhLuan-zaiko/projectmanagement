@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
+  FiBriefcase,
   FiHome,
   FiClipboard,
   FiUsers,
@@ -14,6 +15,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiSettings,
+  FiFolderPlus,
 } from 'react-icons/fi';
 
 interface NavItem {
@@ -99,7 +101,7 @@ interface DashboardSidebarProps {
   variant?: 'desktop' | 'mobile';
 }
 
-export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' }: DashboardSidebarProps) {
+export default function DashboardSidebar({ onClose, variant = 'desktop' }: DashboardSidebarProps) {
   const pathname = usePathname();
   const navItems = useProjectNavItems();
 
@@ -122,7 +124,6 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
   }, [isCollapsed, variant]);
 
   const isActive = (pattern: string) => {
-    const basePattern = pattern.replace(/\/\[.+\]/g, '');
     if (pattern.includes('/dashboard') && !pattern.includes('/dashboard/')) {
       return pathname === pattern;
     }
@@ -174,6 +175,8 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={true}
+                data-speculate="prerender"
                 onClick={handleLinkClick}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
@@ -213,6 +216,31 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
           })}
         </nav>
 
+        <div className="px-3 pb-4">
+          <div className="grid grid-cols-1 gap-2">
+            <Link
+              href="/projects/workspace"
+              prefetch={true}
+              data-speculate="prefetch"
+              onClick={handleLinkClick}
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08]"
+            >
+              <FiBriefcase className="h-5 w-5 text-cyan-300" />
+              <span>Project Hub</span>
+            </Link>
+            <Link
+              href="/projects/create"
+              prefetch={true}
+              data-speculate="prefetch"
+              onClick={handleLinkClick}
+              className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+            >
+              <FiFolderPlus className="h-5 w-5" />
+              <span>Create Project</span>
+            </Link>
+          </div>
+        </div>
+
         {/* Bottom Section */}
         <div className="absolute bottom-0 left-0 right-0 px-6 py-4 border-t border-slate-700/50">
           <div className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-xl p-4">
@@ -233,10 +261,9 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
     <>
       <aside
         className={`
-          h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50
+          h-full w-72 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50
           overflow-hidden flex flex-col
-          transition-all duration-300 ease-in-out
-          ${isCollapsed ? 'w-20' : 'w-72'}
+          transition-[background-color] duration-300 ease-in-out
         `}
       >
         {/* Desktop Header */}
@@ -267,7 +294,7 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+        <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto overflow-x-hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {navItems.map((item) => {
             const active = isActive(item.activePattern);
             const Icon = item.icon;
@@ -276,6 +303,8 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={true}
+                data-speculate="prerender"
                 onClick={handleLinkClick}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative
@@ -319,6 +348,31 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
           })}
         </nav>
 
+        <div className="px-3 pb-4">
+          <div className="space-y-2">
+            <Link
+              href="/projects/workspace"
+              prefetch={true}
+              data-speculate="prefetch"
+              className={`flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-100 transition hover:bg-white/[0.08] ${isCollapsed ? 'justify-center' : ''}`}
+              title={isCollapsed ? 'Project Hub' : undefined}
+            >
+              <FiBriefcase className="h-5 w-5 shrink-0 text-cyan-300" />
+              {!isCollapsed && <span>Project Hub</span>}
+            </Link>
+            <Link
+              href="/projects/create"
+              prefetch={true}
+              data-speculate="prefetch"
+              className={`flex items-center gap-3 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110 ${isCollapsed ? 'justify-center' : ''}`}
+              title={isCollapsed ? 'Create Project' : undefined}
+            >
+              <FiFolderPlus className="h-5 w-5 shrink-0" />
+              {!isCollapsed && <span>Create Project</span>}
+            </Link>
+          </div>
+        </div>
+
         {/* Bottom Section */}
         {!isCollapsed && (
           <div className="px-6 py-4 border-t border-slate-700/50">
@@ -338,7 +392,7 @@ export default function DashboardSidebar({ isOpen, onClose, variant = 'desktop' 
       {isCollapsed && (
         <button
           onClick={toggleCollapse}
-          className="hidden lg:flex fixed left-20 top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-800 border border-slate-700 rounded-r-lg hover:bg-slate-700 transition-all duration-200 group shadow-lg shadow-black/30"
+          className="hidden lg:flex fixed left-[288px] top-1/2 -translate-y-1/2 z-40 p-2 bg-slate-800 border border-slate-700 rounded-r-lg hover:bg-slate-700 transition-all duration-200 group shadow-lg shadow-black/30"
           title="Expand sidebar"
         >
           <FiChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />

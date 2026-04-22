@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { validateProjectFormData } from '@/lib/project-validation';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import type { ProjectFormData } from '@/types/project';
 
 export async function GET(
   _request: NextRequest,
@@ -15,38 +18,12 @@ export async function GET(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
-
-    const project = await projectRepository.findById(projectId, { includeDeleted: true });
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    const membership = await projectTeamRepository.getMemberRole(projectId, user.user_id);
-    const isOwner = project.owner_id === user.user_id;
-
-    if (!isOwner && (!membership || !membership.is_active)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
-
-    if (project.is_deleted && !isOwner) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
+    const access = await requireProjectAccess(projectId, user.user_id, 'read', { includeDeleted: true });
+    const project = access.project;
 
     // Get team members
     const teamMembers = await projectTeamRepository.getProjectTeam(projectId);
@@ -59,11 +36,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch project');
   }
 }
 
@@ -74,14 +47,12 @@ export async function PATCH(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody<ProjectFormData>(request);
     const validation = validateProjectFormData(body);
 
     if (!validation.sanitizedData) {
@@ -97,29 +68,8 @@ export async function PATCH(
 
     const sanitizedBody = validation.sanitizedData;
 
-    // Check if project exists
-    const project = await projectRepository.findById(projectId, { includeDeleted: true });
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if user is owner or has permission
-    const membership = await projectTeamRepository.getMemberRole(projectId, user.user_id);
-
-    const userIdStr = String(user.user_id);
-    const ownerIdStr = String(project.owner_id);
-    const isOwner = ownerIdStr === userIdStr;
-    const isManager = membership?.role === 'manager' && membership.is_active;
-
-    if (!isOwner && !isManager) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
+    const access = await requireProjectAccess(projectId, user.user_id, 'manage', { includeDeleted: true });
+    const project = access.project;
 
     if (project.is_deleted) {
       return NextResponse.json(
@@ -146,11 +96,7 @@ export async function PATCH(
       message: 'Project updated successfully',
     });
   } catch (error) {
-    console.error('Error updating project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to update project');
   }
 }
 
@@ -161,32 +107,16 @@ export async function DELETE(
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { projectId } = await params;
     const { searchParams } = new URL(request.url);
     const permanent = searchParams.get('permanent') === 'true';
+    requireCsrf(request);
 
-    // Check if project exists
-    const project = await projectRepository.findById(projectId, { includeDeleted: true });
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if user is owner
-    if (String(project.owner_id) !== String(user.user_id)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
+    const access = await requireProjectAccess(projectId, user.user_id, 'owner', { includeDeleted: true });
+    const project = access.project;
 
     if (permanent) {
       await projectRepository.deleteProject(projectId);
@@ -211,10 +141,6 @@ export async function DELETE(
       message: 'Project moved to trash',
     });
   } catch (error) {
-    console.error('Error deleting project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to delete project');
   }
 }

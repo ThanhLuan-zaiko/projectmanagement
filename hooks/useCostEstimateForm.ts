@@ -1,13 +1,17 @@
 // Custom hook for cost estimate form state management
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CostEstimate, CostEstimateFormData } from '@/types/cost-estimate';
+import { apiFetch } from '@/utils/api-client';
 
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
+interface UseCostEstimateFormOptions {
+  projectId?: string;
+  onSuccess?: () => void | Promise<void>;
+}
 
-const initialFormData: CostEstimateFormData = {
-  project_id: DEFAULT_PROJECT_ID,
+const getInitialFormData = (projectId?: string): CostEstimateFormData => ({
+  project_id: projectId || '',
   work_item_id: '',
   estimate_type: 'labor',
   estimated_cost: '',
@@ -18,16 +22,23 @@ const initialFormData: CostEstimateFormData = {
   unit_cost: '',
   notes: '',
   status: 'draft',
-};
+});
 
-export function useCostEstimateForm(onSuccess?: () => void) {
-  const [formData, setFormData] = useState<CostEstimateFormData>(initialFormData);
+export function useCostEstimateForm(options: UseCostEstimateFormOptions = {}) {
+  const { projectId, onSuccess } = options;
+  const [formData, setFormData] = useState<CostEstimateFormData>(getInitialFormData(projectId));
   const [editingItem, setEditingItem] = useState<CostEstimate | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (!editingItem) {
+      setFormData((prev) => ({ ...prev, project_id: projectId || '' }));
+    }
+  }, [projectId, editingItem]);
+
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData(projectId));
     setEditingItem(null);
     setValidationErrors([]);
   };
@@ -87,7 +98,7 @@ export function useCostEstimateForm(onSuccess?: () => void) {
 
       const method = editingItem ? 'PUT' : 'POST';
 
-      const requestBody: any = {
+      const requestBody: Record<string, string | number | null> = {
         project_id: formData.project_id,
         work_item_id: formData.work_item_id,
         estimate_type: formData.estimate_type,
@@ -107,7 +118,7 @@ export function useCostEstimateForm(onSuccess?: () => void) {
         requestBody.estimated_cost = formData.estimated_cost ? parseFloat(formData.estimated_cost) : null;
       }
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { CostEstimate } from '@/types/cost-estimate';
+import { apiFetch } from '@/utils/api-client';
 
 export function useCostEstimateActions(onSuccess?: () => void) {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function useCostEstimateActions(onSuccess?: () => void) {
         ? `/api/cost-estimates/${itemToDelete.estimate_id}?permanent=true`
         : `/api/cost-estimates/${itemToDelete.estimate_id}`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -53,7 +54,7 @@ export function useCostEstimateActions(onSuccess?: () => void) {
   const handleRestore = async (item: CostEstimate) => {
     setIsRestoringItem(true);
     try {
-      const response = await fetch(`/api/cost-estimates/${item.estimate_id}/restore`, {
+      const response = await apiFetch(`/api/cost-estimates/${item.estimate_id}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

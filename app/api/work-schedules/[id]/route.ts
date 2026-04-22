@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workScheduleRepository } from '@/lib/work-schedule-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateWorkSchedulePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
@@ -24,19 +27,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const projectId = searchParams.get('project_id');
 
     if (!projectId) {
-      return NextResponse.json({ success: false, error: 'Project ID is required' }, { status: 400 });
+      return errorResponse(400, 'Project ID is required');
     }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     const schedule = await workScheduleRepository.findById(id, { params: [projectId] });
 
     if (!schedule) {
-      return NextResponse.json({ success: false, error: 'Work schedule not found' }, { status: 404 });
+      return errorResponse(404, 'Work schedule not found');
     }
 
     return NextResponse.json({ success: true, data: schedule });
   } catch (error) {
-    console.error('Error fetching work schedule:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch work schedule' }, { status: 500 });
+    return handleRouteError(error, 'Failed to fetch work schedule');
   }
 }
 
@@ -45,46 +48,48 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkSchedulePayload(body, 'update');
 
-    if (!body.project_id) {
-      return NextResponse.json({ success: false, error: 'Project ID is required' }, { status: 400 });
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted work schedule fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    // Validate date range if dates are provided
-    if (body.planned_start_date && body.planned_end_date) {
-      const startDate = new Date(body.planned_start_date);
-      const endDate = new Date(body.planned_end_date);
-      if (endDate < startDate) {
-        return NextResponse.json({ success: false, error: 'End date must be after start date' }, { status: 400 });
-      }
-    }
+    const updateData: Record<string, unknown> = { project_id: projectId };
 
-    const updateData: Record<string, unknown> = { project_id: body.project_id };
-
-    if (body.work_item_id !== undefined) updateData.work_item_id = body.work_item_id;
-    if (body.schedule_id !== undefined) updateData.schedule_id = body.schedule_id || null;
-    if (body.planned_start_date !== undefined) updateData.planned_start_date = new Date(body.planned_start_date);
-    if (body.planned_end_date !== undefined) updateData.planned_end_date = new Date(body.planned_end_date);
-    if (body.actual_start_date !== undefined) updateData.actual_start_date = body.actual_start_date ? new Date(body.actual_start_date) : null;
-    if (body.actual_end_date !== undefined) updateData.actual_end_date = body.actual_end_date ? new Date(body.actual_end_date) : null;
-    if (body.planned_hours !== undefined) updateData.planned_hours = body.planned_hours;
-    if (body.actual_hours !== undefined) updateData.actual_hours = body.actual_hours;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.completion_percentage !== undefined) updateData.completion_percentage = body.completion_percentage;
-    if (body.is_critical_path !== undefined) updateData.is_critical_path = body.is_critical_path;
-    if (body.dependencies !== undefined) updateData.dependencies = body.dependencies;
+    if (sanitizedBody.work_item_id !== undefined) updateData.work_item_id = sanitizedBody.work_item_id;
+    if (sanitizedBody.schedule_id !== undefined) updateData.schedule_id = sanitizedBody.schedule_id;
+    if (sanitizedBody.planned_start_date !== undefined) updateData.planned_start_date = sanitizedBody.planned_start_date;
+    if (sanitizedBody.planned_end_date !== undefined) updateData.planned_end_date = sanitizedBody.planned_end_date;
+    if (sanitizedBody.actual_start_date !== undefined) updateData.actual_start_date = sanitizedBody.actual_start_date;
+    if (sanitizedBody.actual_end_date !== undefined) updateData.actual_end_date = sanitizedBody.actual_end_date;
+    if (sanitizedBody.planned_hours !== undefined) updateData.planned_hours = sanitizedBody.planned_hours;
+    if (sanitizedBody.actual_hours !== undefined) updateData.actual_hours = sanitizedBody.actual_hours;
+    if (sanitizedBody.status !== undefined) updateData.status = sanitizedBody.status;
+    if (sanitizedBody.completion_percentage !== undefined) updateData.completion_percentage = sanitizedBody.completion_percentage;
+    if (sanitizedBody.is_critical_path !== undefined) updateData.is_critical_path = sanitizedBody.is_critical_path;
+    if (sanitizedBody.dependencies !== undefined) updateData.dependencies = sanitizedBody.dependencies;
 
     const updatedSchedule = await workScheduleRepository.update(id, updateData);
 
     return NextResponse.json({ success: true, data: updatedSchedule, message: 'Work schedule updated successfully' });
   } catch (error) {
-    console.error('Error updating work schedule:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update work schedule' }, { status: 500 });
+    return handleRouteError(error, 'Failed to update work schedule');
   }
 }
 
@@ -93,27 +98,38 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
     const permanent = searchParams.get('permanent') === 'true';
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkSchedulePayload(body, 'update');
 
-    if (!body.project_id) {
-      return NextResponse.json({ success: false, error: 'Project ID is required' }, { status: 400 });
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted work schedule fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
     if (permanent) {
-      await workScheduleRepository.hardDelete(id, { project_id: body.project_id });
+      await workScheduleRepository.hardDelete(id, { project_id: projectId });
       return NextResponse.json({ success: true, message: 'Work schedule permanently deleted' });
     } else {
-      await workScheduleRepository.softDelete(id, user.user_id, { project_id: body.project_id });
+      await workScheduleRepository.softDelete(id, user.user_id, { project_id: projectId });
       return NextResponse.json({ success: true, message: 'Work schedule deleted (moved to trash)' });
     }
   } catch (error) {
-    console.error('Error deleting work schedule:', error);
-    return NextResponse.json({ success: false, error: 'Failed to delete work schedule' }, { status: 500 });
+    return handleRouteError(error, 'Failed to delete work schedule');
   }
 }

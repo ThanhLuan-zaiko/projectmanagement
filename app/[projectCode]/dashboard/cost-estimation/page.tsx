@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useCostEstimates } from '@/hooks/useCostEstimates';
@@ -19,7 +19,7 @@ import {
   TableFilters,
   TablePagination,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function CostEstimateSkeleton() {
   return (
@@ -68,9 +68,12 @@ function CostEstimatesContent() {
     refresh: refreshEstimates,
   } = useCostEstimates({
     projectId: urlFilters.filters.project_id || project?.project_id || '',
+    search: urlFilters.search,
     workItemId: urlFilters.filters.work_item_id || '',
     estimateType: urlFilters.filters.estimate_type || 'all',
     status: urlFilters.filters.status || 'all',
+    sortBy: urlFilters.sortBy,
+    sortOrder: urlFilters.sortOrder,
     page: urlFilters.page,
     limit: urlFilters.limit,
     includeDeleted: isTrashTab,
@@ -98,15 +101,7 @@ function CostEstimatesContent() {
     handleSubmit: handleFormSubmit,
     handleChange,
     handleEdit,
-    setFormData,
-  } = useCostEstimateForm(refreshData);
-
-  // Sync project_id from context to form
-  useEffect(() => {
-    if (project?.project_id) {
-      setFormData(prev => ({ ...prev, project_id: project.project_id }));
-    }
-  }, [project?.project_id, setFormData]);
+  } = useCostEstimateForm({ projectId: project?.project_id });
 
   const {
     showDeleteModal,
@@ -125,14 +120,20 @@ function CostEstimatesContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    const isCreating = !editingItem;
     const success = await handleFormSubmit(e);
     if (success) {
       setShowCreateModal(false);
+      if (isCreating && urlFilters.page !== 1) {
+        urlFilters.setPage(1);
+      } else {
+        await refreshData();
+      }
     }
   };
 
   // Fetch work items for dropdowns
-  const { workItems, loading: workItemsLoading } = useAllWorkItems({ projectId: project?.project_id || '' });
+  const { workItems } = useAllWorkItems({ projectId: project?.project_id || '' });
 
   // Format data for dropdowns
   const workItemOptions = workItems.map(item => ({
@@ -163,16 +164,13 @@ function CostEstimatesContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title={activeTab === 'trash' ? 'Cost Estimate Trash' : 'Project Cost Estimation'}
-          subtitle={activeTab === 'trash' ? 'View and restore deleted cost estimates' : 'Estimate and manage costs for project work items'}
-          actionLabel={activeTab === 'trash' ? undefined : 'Create Estimate'}
-          onAction={activeTab === 'trash' ? undefined : handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title={activeTab === 'trash' ? 'Cost Estimate Trash' : 'Project Cost Estimation'}
+        subtitle={activeTab === 'trash' ? 'View and restore deleted cost estimates' : 'Estimate and manage costs for project work items'}
+        actionLabel={activeTab === 'trash' ? undefined : 'Create Estimate'}
+        onAction={activeTab === 'trash' ? undefined : handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -248,7 +246,8 @@ function CostEstimatesContent() {
                   { value: 'estimated_cost', label: 'Estimated Cost' },
                   { value: 'estimate_type', label: 'Estimate Type' },
                 ]}
-                onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+                onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+                onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
                 limit={urlFilters.limit}
                 onLimitChange={urlFilters.setLimit}
                 onRefresh={refreshData}
@@ -258,20 +257,36 @@ function CostEstimatesContent() {
             </>
           )}
 
-          {/* Estimates List - FORCE RENDER */}
-          <CostEstimateList
-            key={JSON.stringify(estimates)}
-            estimates={estimates}
-            loading={false}
-            deletingId={null}
-            hasFilters={hasActiveFilters}
-            onCreateEstimate={activeTab === 'trash' ? undefined : handleCreate}
-            onView={(estimate) => setViewingEstimate(estimate)}
-            onEdit={activeTab === 'trash' ? undefined : handleEditWithModal}
-            onDelete={handleDelete}
-            onRestore={activeTab === 'trash' ? handleRestore : undefined}
-            isRestoringId={isRestoringItem ? itemToDelete?.estimate_id || null : null}
-          />
+          {estimatesLoading ? (
+            <CostEstimateSkeleton />
+          ) : (
+            <>
+              <CostEstimateList
+                key={JSON.stringify(estimates)}
+                estimates={estimates}
+                loading={false}
+                deletingId={null}
+                hasFilters={hasActiveFilters}
+                onCreateEstimate={activeTab === 'trash' ? undefined : handleCreate}
+                onView={(estimate) => setViewingEstimate(estimate)}
+                onEdit={activeTab === 'trash' ? undefined : handleEditWithModal}
+                onDelete={handleDelete}
+                onRestore={activeTab === 'trash' ? handleRestore : undefined}
+                isRestoringId={isRestoringItem ? itemToDelete?.estimate_id || null : null}
+              />
+
+              <div className="mt-6">
+                <TablePagination
+                  currentPage={pagination.page}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.total}
+                  limit={urlFilters.limit}
+                  onPageChange={urlFilters.setPage}
+                  alwaysShow={true}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -306,7 +321,7 @@ function CostEstimatesContent() {
         onSoftDelete={() => confirmDelete(false)}
         onHardDelete={() => confirmDelete(true)}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -1,8 +1,13 @@
 // Expert Repository
 import { BaseRepository } from './repository';
-import { db } from '@/config';
+import { db, insert, update, type QueryOptions } from '@/config';
+
+type ExpertMutationOptions = QueryOptions & {
+  project_id?: string;
+};
 
 export interface Expert extends Record<string, unknown> {
+  project_id: string;
   expert_id: string;
   user_id: string | null;
   name: string;
@@ -15,97 +20,90 @@ export interface Expert extends Record<string, unknown> {
   rating: number | null;
   is_active: boolean | null;
   created_at: Date;
+  updated_at: Date;
 }
 
 export class ExpertRepository extends BaseRepository<Expert> {
   protected tableName = 'experts';
   protected primaryKey = 'expert_id';
 
-  // Find all active experts
-  async findActive(): Promise<Expert[]> {
-    const query = 'SELECT * FROM experts LIMIT 1000';
-    const result = await db.execute<Expert>(query, { params: [] });
-    return result.rows.filter(e => e.is_active === true);
+  async create(data: Partial<Expert>, options?: QueryOptions): Promise<Expert> {
+    if (!data.project_id) {
+      throw new Error('project_id is required to create experts');
+    }
+
+    const expertData = {
+      ...data,
+      created_at: new Date(),
+      updated_at: new Date(),
+      is_active: data.is_active ?? true,
+    };
+
+    const { query, params } = insert(this.tableName, expertData as Record<string, unknown>);
+    await db.execute(query, { ...options, params });
+    return expertData as Expert;
   }
 
-  // Find experts by availability status
-  async findByAvailability(status: string): Promise<Expert[]> {
-    const query = 'SELECT * FROM experts LIMIT 1000';
-    const result = await db.execute<Expert>(query, { params: [] });
-    return result.rows.filter(e => e.availability_status === status);
-  }
+  async update(id: string, data: Partial<Expert>, options?: ExpertMutationOptions): Promise<Expert | null> {
+    const { project_id, ...restData } = data;
+    const projectId = project_id || options?.project_id;
 
-  // Find expert by user_id
-  async findByUserId(userId: string): Promise<Expert | null> {
-    const query = 'SELECT * FROM experts LIMIT 1000';
-    const result = await db.execute<Expert>(query, { params: [] });
-    return result.rows.find(e => e.user_id === userId) || null;
-  }
+    if (!projectId) {
+      throw new Error('project_id is required to update experts');
+    }
 
-  // Search experts by name or specialization
-  async search(searchTerm: string): Promise<Expert[]> {
-    const query = 'SELECT * FROM experts LIMIT 1000';
-    const result = await db.execute<Expert>(query, { params: [] });
-
-    return result.rows.filter(expert =>
-      expert.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expert.specialization?.some(spec => spec.toLowerCase().includes(searchTerm.toLowerCase()))
+    const { query, params } = update(
+      this.tableName,
+      {
+        ...restData,
+        updated_at: new Date(),
+      } as Record<string, unknown>,
+      'project_id = ? AND expert_id = ?',
+      [projectId, id]
     );
+
+    await db.execute(query, { ...options, params });
+    return this.findById(id, { params: [projectId] });
   }
 
-  // Get all experts with optional filters
-  async findAllWithOptions(options?: {
-    isActive?: boolean;
-    availabilityStatus?: string;
-    limit?: number;
-  }): Promise<Expert[]> {
-    const { isActive, availabilityStatus, limit = 1000 } = options || {};
+  async findById(id: string, options?: { params?: [string] }): Promise<Expert | null> {
+    const [projectId] = options?.params || [];
 
-    // Simple query without WHERE to avoid ScyllaDB filtering issues
-    const query = 'SELECT * FROM experts LIMIT ?';
-    const result = await db.execute<Expert>(query, { params: [limit] });
-
-    // Client-side filtering
-    let experts = result.rows;
-    if (isActive !== undefined) {
-      experts = experts.filter(e => e.is_active === isActive);
-    }
-    if (availabilityStatus) {
-      experts = experts.filter(e => e.availability_status === availabilityStatus);
+    if (!projectId) {
+      throw new Error('project_id is required in options.params to find expert');
     }
 
-    return experts;
+    const query = 'SELECT * FROM experts WHERE project_id = ? AND expert_id = ?';
+    const result = await db.execute<Expert>(query, { params: [projectId, id] });
+    return result.rows[0] || null;
   }
 
-  // Find experts by project_id using the association table
+  async findActive(projectId: string): Promise<Expert[]> {
+    const experts = await this.findByProjectId(projectId, { limit: 1000, isActive: true });
+    return experts.filter((expert) => expert.is_active === true);
+  }
+
+  async findByUserId(projectId: string, userId: string): Promise<Expert | null> {
+    const experts = await this.findByProjectId(projectId, { limit: 1000 });
+    return experts.find((expert) => expert.user_id === userId) || null;
+  }
+
   async findByProjectId(projectId: string, options?: { limit?: number; isActive?: boolean }): Promise<Expert[]> {
-    // 1. Get associated expert IDs for this project
-    const associationQuery = 'SELECT expert_id FROM expert_project_summary WHERE project_id = ?';
-    const associationResult = await db.execute<{ expert_id: any }>(associationQuery, { params: [projectId] });
-    
-    if (associationResult.rows.length === 0) return [];
-    
-    const expertIds = associationResult.rows.map(r => r.expert_id);
-    
-    // 2. Fetch expert details using an IN query on the partition key (expert_id)
-    const placeholders = expertIds.map(() => '?').join(',');
-    const query = `SELECT * FROM experts WHERE expert_id IN (${placeholders})`;
-    const result = await db.execute<Expert>(query, { params: expertIds });
-    
+    const limit = options?.limit ?? 1000;
+    const query = `SELECT * FROM experts WHERE project_id = ? LIMIT ${limit}`;
+    const result = await db.execute<Expert>(query, { params: [projectId] });
     let experts = result.rows;
-    
-    // 3. Apply status filter in JS (consistent with Tasks pattern)
+
     if (options?.isActive !== undefined) {
-      experts = experts.filter(e => e.is_active === options.isActive);
+      experts = experts.filter((expert) => expert.is_active === options.isActive);
     }
-    
+
     return experts;
   }
 
-  // Delete expert permanently from database
-  async permanentDelete(id: string): Promise<boolean> {
-    const query = 'DELETE FROM experts WHERE expert_id = ?';
-    await db.execute(query, { params: [id] });
+  async permanentDelete(id: string, projectId: string): Promise<boolean> {
+    const query = 'DELETE FROM experts WHERE project_id = ? AND expert_id = ?';
+    await db.execute(query, { params: [projectId, id] });
     return true;
   }
 }

@@ -1,6 +1,10 @@
 // CSRF protection utilities
 
 import crypto from 'crypto';
+import { NextRequest } from 'next/server';
+
+export const CSRF_COOKIE_NAME = 'csrf_token';
+export const CSRF_HEADER_NAME = 'x-csrf-token';
 
 /**
  * Generate a CSRF token
@@ -17,10 +21,31 @@ export function verifyCsrfToken(token: string): boolean {
   if (!token || typeof token !== 'string') {
     return false;
   }
-  
+
   // Basic validation - should be base64url encoded
   const csrfRegex = /^[A-Za-z0-9_-]+$/;
   return csrfRegex.test(token) && token.length > 0;
+}
+
+/**
+ * Read the CSRF token that was echoed by the client in a request header.
+ */
+export function getCsrfHeaderToken(request: NextRequest): string | null {
+  return request.headers.get(CSRF_HEADER_NAME) || request.headers.get('X-CSRF-Token');
+}
+
+/**
+ * Verify the request carries a matching CSRF cookie/header pair.
+ */
+export function verifyCsrfRequest(request: NextRequest): boolean {
+  const cookieToken = request.cookies.get(CSRF_COOKIE_NAME)?.value || '';
+  const headerToken = getCsrfHeaderToken(request) || '';
+
+  if (!verifyCsrfToken(cookieToken) || !verifyCsrfToken(headerToken)) {
+    return false;
+  }
+
+  return cookieToken === headerToken;
 }
 
 /**
@@ -37,7 +62,7 @@ export function getCsrfCookieOptions(): {
   };
 } {
   return {
-    name: 'csrf_token',
+    name: CSRF_COOKIE_NAME,
     options: {
       httpOnly: false, // Needs to be accessible by JavaScript for form submissions
       secure: process.env.NODE_ENV === 'production',

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FiFolderPlus, FiLayers } from 'react-icons/fi';
+import { FiBarChart2, FiFolderPlus, FiLayers, FiShield } from 'react-icons/fi';
 import { useProjectActions } from '@/hooks/useProjectActions';
 import { useProjects } from '@/hooks/useProjects';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
@@ -23,6 +23,8 @@ export default function ProjectsWorkspaceClient() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [trashModalProject, setTrashModalProject] = useState<Project | null>(null);
+  const [memberPage, setMemberPage] = useState(1);
+  const [memberLimit, setMemberLimit] = useState(6);
 
   const ownedProjectsState = useProjects({
     scope: 'owned',
@@ -38,8 +40,8 @@ export default function ProjectsWorkspaceClient() {
     scope: 'member',
     search: urlFilters.search,
     status: urlFilters.filters.status || 'all',
-    page: 1,
-    limit: 6,
+    page: memberPage,
+    limit: memberLimit,
     sortBy: urlFilters.sortBy,
     sortOrder: urlFilters.sortOrder,
   });
@@ -91,12 +93,73 @@ export default function ProjectsWorkspaceClient() {
         sortBy={urlFilters.sortBy}
         sortOrder={urlFilters.sortOrder}
         isRefreshing={isRefreshing}
-        onSearchChange={urlFilters.setSearch}
-        onStatusChange={(value) => urlFilters.setFilter('status', value)}
-        onSortByChange={(value) => urlFilters.setSort(value, urlFilters.sortOrder)}
-        onSortOrderChange={(value) => urlFilters.setSort(urlFilters.sortBy, value)}
+        onSearchChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSearch(value);
+        }}
+        onStatusChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setFilter('status', value);
+        }}
+        onSortByChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSort(value, urlFilters.sortOrder);
+        }}
+        onSortOrderChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSort(urlFilters.sortBy, value);
+        }}
         onRefresh={refreshAll}
       />
+
+      <div className="grid gap-4 xl:grid-cols-3">
+        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
+              <FiLayers className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/70">Owned Scope</p>
+              <h3 className="mt-1 text-2xl font-semibold text-white">{ownedProjectsState.pagination.total}</h3>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-300">
+            Projects you can govern directly, edit aggressively, archive, restore and route into dashboards.
+          </p>
+        </section>
+
+        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
+              <FiShield className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/70">Collaborating</p>
+              <h3 className="mt-1 text-2xl font-semibold text-white">{memberProjectsState.pagination.total}</h3>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-300">
+            Joined workspaces remain separated from owned projects so shared execution is visible without muddying control.
+          </p>
+        </section>
+
+        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
+              <FiBarChart2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-violet-200/70">Filter State</p>
+              <h3 className="mt-1 text-lg font-semibold capitalize text-white">
+                {(urlFilters.filters.status || 'all').replace('_', ' ')}
+              </h3>
+            </div>
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-300">
+            Search, sort and pagination state stay visible so portfolio reviews feel deliberate instead of ad hoc.
+          </p>
+        </section>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
         <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
@@ -149,6 +212,12 @@ export default function ProjectsWorkspaceClient() {
         emptyTitle="No joined projects"
         emptyDescription="Use a project code from the Create & Join tab to attach yourself to an existing workspace."
         loading={memberProjectsState.loading}
+        pagination={memberProjectsState.pagination}
+        onPageChange={setMemberPage}
+        onLimitChange={(nextLimit) => {
+          setMemberLimit(nextLimit);
+          setMemberPage(1);
+        }}
         onOpen={(project) => router.push(`/${project.project_code}/dashboard`)}
       />
 

@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { ProjectSchedule } from '@/types/project-schedule';
+import { apiFetch } from '@/utils/api-client';
 
 export function useProjectScheduleActions(onSuccess?: () => void) {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function useProjectScheduleActions(onSuccess?: () => void) {
         ? `/api/project-schedules/${itemToDelete.schedule_id}?permanent=true`
         : `/api/project-schedules/${itemToDelete.schedule_id}`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,7 +53,7 @@ export function useProjectScheduleActions(onSuccess?: () => void) {
   const handleRestore = async (item: ProjectSchedule) => {
     setIsRestoringItem(true);
     try {
-      const response = await fetch(`/api/project-schedules/${item.schedule_id}/restore`, {
+      const response = await apiFetch(`/api/project-schedules/${item.schedule_id}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProject } from '@/app/[projectCode]/layout';
-import { useRouter } from 'next/navigation';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
-import { FiSave, FiUsers, FiSettings, FiTrash2, FiPlus } from 'react-icons/fi';
+import { DashboardHeader } from '@/components/layout';
+import { FiSave, FiUsers, FiSettings, FiTrash2 } from 'react-icons/fi';
+import { apiFetch } from '@/utils/api-client';
 
 interface TeamMember {
   member_id: string;
@@ -17,7 +17,6 @@ interface TeamMember {
 }
 
 export default function ProjectSettingsPage() {
-  const router = useRouter();
   const { user } = useAuth();
   const { project } = useProject();
   const [projectName, setProjectName] = useState('');
@@ -31,21 +30,10 @@ export default function ProjectSettingsPage() {
   const [isLoadingTeam, setIsLoadingTeam] = useState(true);
 
   // Initialize form with project data
-  useEffect(() => {
-    if (project) {
-      setProjectName(project.project_name);
-      setDescription(project.description);
-      setStatus(project.status);
-      setBudget(project.budget?.toString() || '');
-      setCurrency(project.currency);
-      fetchTeamMembers();
-    }
-  }, [project]);
-
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = useCallback(async () => {
     if (!project) return;
     try {
-      const response = await fetch(`/api/projects/${project.project_id}/team`);
+      const response = await apiFetch(`/api/projects/${project.project_id}/team`);
       const data = await response.json();
       if (data.success) {
         setTeamMembers(data.data);
@@ -55,7 +43,18 @@ export default function ProjectSettingsPage() {
     } finally {
       setIsLoadingTeam(false);
     }
-  };
+  }, [project]);
+
+  useEffect(() => {
+    if (project) {
+      setProjectName(project.project_name);
+      setDescription(project.description);
+      setStatus(project.status);
+      setBudget(project.budget?.toString() || '');
+      setCurrency(project.currency);
+      void fetchTeamMembers();
+    }
+  }, [project, fetchTeamMembers]);
 
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +64,7 @@ export default function ProjectSettingsPage() {
     setSaveMessage('');
 
     try {
-      const response = await fetch(`/api/projects/${project.project_id}`, {
+      const response = await apiFetch(`/api/projects/${project.project_id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -84,7 +83,7 @@ export default function ProjectSettingsPage() {
       } else {
         setSaveMessage(data.error || 'Failed to update project');
       }
-    } catch (err) {
+    } catch {
       setSaveMessage('An error occurred');
     } finally {
       setIsSaving(false);
@@ -94,7 +93,7 @@ export default function ProjectSettingsPage() {
   const handleRemoveMember = async (memberId: string) => {
     if (!project) return;
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `/api/projects/${project.project_id}/team?member_id=${memberId}`,
         { method: 'DELETE' }
       );
@@ -109,7 +108,7 @@ export default function ProjectSettingsPage() {
   const handleUpdateRole = async (memberId: string, role: TeamMember['role']) => {
     if (!project) return;
     try {
-      const response = await fetch(`/api/projects/${project.project_id}/team`, {
+      const response = await apiFetch(`/api/projects/${project.project_id}/team`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ member_id: memberId, role }),
@@ -133,14 +132,11 @@ export default function ProjectSettingsPage() {
   const isOwner = project.owner_id === user?.user_id;
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title="Project Settings"
-          subtitle={`Manage ${project.project_code}`}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title="Project Settings"
+        subtitle={`Manage ${project.project_code}`}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6">
         {/* Project Info Form */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
@@ -323,6 +319,6 @@ export default function ProjectSettingsPage() {
           </p>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

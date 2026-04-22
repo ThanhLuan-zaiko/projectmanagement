@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { FiLock, FiEye, FiEyeOff, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import Modal from '../ui/Modal';
+import { apiFetch } from '@/utils/api-client';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -66,7 +67,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/change-password', {
+      const response = await apiFetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +98,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       setTimeout(() => {
         onClose();
       }, 2000);
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);

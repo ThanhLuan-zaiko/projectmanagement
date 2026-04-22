@@ -131,7 +131,7 @@ export default function ProjectList({
         </div>
       )}
 
-      {pagination && onPageChange && pagination.totalPages > 1 && (
+      {pagination && (
         <div className="mt-6">
           <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 sm:flex-row">
             <div className="text-sm text-slate-400">
@@ -147,13 +147,12 @@ export default function ProjectList({
                   </span>
                   {' '}of{' '}
                   <span className="font-medium text-white">{pagination.total}</span>
-                  {' '}projects
+                  {' '}project{pagination.total === 1 ? '' : 's'}
                 </>
               ) : (
                 <>
                   Showing{' '}
-                  <span className="font-medium text-white">0</span>
-                  {' '}projects
+                  <span className="font-medium text-white">0</span>{' '}projects
                 </>
               )}
               {pagination.totalPages > 1 && (
@@ -165,39 +164,45 @@ export default function ProjectList({
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPageChange(1)}
-                disabled={!pagination.hasPrevPage}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                First
-              </button>
-              <button
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={!pagination.hasPrevPage}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Prev
-              </button>
-              <span className="rounded-lg bg-cyan-400/10 px-3 py-2 text-sm font-medium text-cyan-200">
-                {pagination.page} / {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={!pagination.hasNextPage}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => onPageChange(pagination.totalPages)}
-                disabled={!pagination.hasNextPage}
-                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Last
-              </button>
-            </div>
+            {onPageChange && pagination.totalPages > 1 ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onPageChange(1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  First
+                </button>
+                <button
+                  onClick={() => onPageChange(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <span className="rounded-lg bg-cyan-400/10 px-3 py-2 text-sm font-medium text-cyan-200">
+                  {pagination.page} / {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => onPageChange(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => onPageChange(pagination.totalPages)}
+                  disabled={!pagination.hasNextPage}
+                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Last
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300">
+                Stable portfolio snapshot
+              </div>
+            )}
           </div>
         </div>
       )}

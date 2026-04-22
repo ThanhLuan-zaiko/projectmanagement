@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { WorkItem } from '@/types/work-item';
+import { apiFetch } from '@/utils/api-client';
 
 export function useTaskActions(onSuccess?: () => void) {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -15,11 +16,15 @@ export function useTaskActions(onSuccess?: () => void) {
     setShowDeleteModal(true);
   };
 
-  const handleRestore = async (id: string) => {
-    setDeleting(id);
+  const handleRestore = async (item: WorkItem) => {
+    setDeleting(item.work_item_id);
     try {
-      const response = await fetch(`/api/work-items/${id}/restore`, {
+      const response = await apiFetch(`/api/work-items/${item.work_item_id}/restore`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: item.project_id,
+        }),
       });
 
       const data = await response.json();
@@ -42,8 +47,12 @@ export function useTaskActions(onSuccess?: () => void) {
     try {
       if (hardDelete) {
         // Hard delete - permanently remove from database
-        const response = await fetch(`/api/work-items/${itemToDelete.work_item_id}/permanent`, {
+        const response = await apiFetch(`/api/work-items/${itemToDelete.work_item_id}/permanent`, {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project_id: itemToDelete.project_id,
+          }),
         });
 
         const data = await response.json();
@@ -54,8 +63,12 @@ export function useTaskActions(onSuccess?: () => void) {
         }
       } else {
         // Soft delete - set status to cancelled
-        const response = await fetch(`/api/work-items/${itemToDelete.work_item_id}`, {
+        const response = await apiFetch(`/api/work-items/${itemToDelete.work_item_id}`, {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project_id: itemToDelete.project_id,
+          }),
         });
 
         const data = await response.json();

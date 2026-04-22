@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { ProjectSummaryResponse } from '@/types/project';
+import { apiFetch } from '@/utils/api-client';
 
 const SUMMARY_CACHE_TTL = 5000;
 
@@ -37,7 +38,7 @@ export function useProjectSummary() {
       }
 
       summaryCache.pending = (async () => {
-        const response = await fetch('/api/projects/summary', {
+        const response = await apiFetch('/api/projects/summary', {
           cache: 'no-store',
         });
         const data = await response.json();

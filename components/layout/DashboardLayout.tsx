@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FiMenu, FiX } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiMenu } from 'react-icons/fi';
 import DashboardSidebar from './DashboardSidebar';
 import UserMenu from './UserMenu';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,25 +13,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, header }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { user } = useAuth();
-
-  // Load collapsed state from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('sidebar-collapsed');
-    if (saved !== null) {
-      setIsSidebarCollapsed(saved === 'true');
-    }
-
-    // Listen for sidebar collapse changes
-    const handleStorageChange = () => {
-      const current = localStorage.getItem('sidebar-collapsed');
-      setIsSidebarCollapsed(current === 'true');
-    };
-
-    window.addEventListener('sidebar-collapse-change', handleStorageChange);
-    return () => window.removeEventListener('sidebar-collapse-change', handleStorageChange);
-  }, []);
 
   // Close mobile menu on resize to desktop
   useEffect(() => {
@@ -58,7 +40,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
   }, [mobileMenuOpen]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -86,12 +68,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
       </div>
 
       {/* Main Content */}
-      <div
-        className={`
-          min-h-screen flex flex-col transition-all duration-300 ease-in-out
-          ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}
-        `}
-      >
+      <div className="min-h-screen flex flex-col lg:pl-72">
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-20 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
           <div className="flex items-center justify-between px-4 py-4">
@@ -122,7 +99,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
         )}
 
         {/* Page Content */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>

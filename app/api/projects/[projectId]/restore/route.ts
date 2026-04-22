@@ -1,37 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
+    requireCsrf(request);
     const { projectId } = await params;
-    const project = await projectRepository.findById(projectId, { includeDeleted: true });
-
-    if (!project) {
-      return NextResponse.json(
-        { success: false, error: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    if (String(project.owner_id) !== String(user.user_id)) {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
-    }
+    const access = await requireProjectAccess(projectId, user.user_id, 'owner', { includeDeleted: true });
+    const project = access.project;
 
     if (!project.is_deleted) {
       return NextResponse.json(
@@ -47,10 +34,6 @@ export async function POST(
       message: 'Project restored successfully',
     });
   } catch (error) {
-    console.error('Error restoring project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to restore project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to restore project');
   }
 }

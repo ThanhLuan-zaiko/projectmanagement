@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { apiFetch } from '@/utils/api-client';
 
 interface User {
   user_id: string;
@@ -41,7 +42,7 @@ async function fetchUser(): Promise<User | null> {
   // Create new request
   pendingRequest = (async () => {
     try {
-      const response = await fetch('/api/auth/me', {
+      const response = await apiFetch('/api/auth/me', {
         credentials: 'include',
       });
 
@@ -100,7 +101,7 @@ export function useAuth() {
 }
 
 export async function logoutUser(redirectTo = '/auth/login') {
-  const response = await fetch('/api/auth/logout', {
+  const response = await apiFetch('/api/auth/logout', {
     method: 'POST',
     credentials: 'include',
   });

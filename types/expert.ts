@@ -1,6 +1,7 @@
 // Expert types
 
 export interface Expert {
+  project_id: string;
   expert_id: string;
   user_id: string | null;
   name: string;
@@ -13,6 +14,7 @@ export interface Expert {
   rating: number | null;
   is_active: boolean | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ExpertFormData {

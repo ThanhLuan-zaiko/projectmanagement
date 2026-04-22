@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Expert, ExpertFormData } from '@/types/expert';
+import { apiFetch } from '@/utils/api-client';
 
 interface PaginationInfo {
   page: number;
@@ -31,8 +32,8 @@ interface UseExpertsResult {
   pagination: PaginationInfo;
   fetchExperts: () => Promise<void>;
   refresh: () => Promise<void>;
-  createExpert: (data: ExpertFormData) => Promise<boolean>;
-  updateExpert: (id: string, data: ExpertFormData) => Promise<boolean>;
+  createExpert: (data: ExpertFormData & { project_id?: string }) => Promise<boolean>;
+  updateExpert: (id: string, data: ExpertFormData & { project_id?: string }) => Promise<boolean>;
   deleteExpert: (id: string) => Promise<boolean>;
 }
 
@@ -61,6 +62,21 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   });
 
   const fetchExperts = useCallback(async () => {
+    if (!projectId) {
+      setExperts([]);
+      setPagination({
+        page: 1,
+        limit,
+        total: 0,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      });
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -71,12 +87,12 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
         sort_by: sortBy,
         sort_order: sortOrder,
       });
-      if (projectId) params.set('project_id', projectId);
+      params.set('project_id', projectId);
       if (isActive !== undefined) params.set('is_active', isActive.toString());
       if (availabilityStatus) params.set('availability_status', availabilityStatus);
       if (search) params.set('search', search);
 
-      const response = await fetch(`/api/experts?${params.toString()}`, {
+      const response = await apiFetch(`/api/experts?${params.toString()}`, {
         cache: 'no-store',
       });
       const data = await response.json();
@@ -109,9 +125,9 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   }, [fetchExperts]);
 
   // Create expert
-  const createExpert = useCallback(async (data: any): Promise<boolean> => {
+  const createExpert = useCallback(async (data: ExpertFormData & { project_id?: string }): Promise<boolean> => {
     try {
-      const response = await fetch('/api/experts', {
+      const response = await apiFetch('/api/experts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -129,9 +145,9 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   }, [projectId]);
 
   // Update expert
-  const updateExpert = useCallback(async (id: string, data: any): Promise<boolean> => {
+  const updateExpert = useCallback(async (id: string, data: ExpertFormData & { project_id?: string }): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/experts/${id}`, {
+      const response = await apiFetch(`/api/experts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,7 +167,7 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
   // Delete expert (soft delete - sets is_active to false)
   const deleteExpert = useCallback(async (id: string): Promise<boolean> => {
     try {
-      const response = await fetch(`/api/experts/${id}`, {
+      const response = await apiFetch(`/api/experts/${id}?project_id=${encodeURIComponent(projectId || '')}`, {
         method: 'DELETE',
       });
 
@@ -161,7 +177,7 @@ export function useExperts(options: UseExpertsOptions): UseExpertsResult {
       console.error('Failed to delete expert:', err);
       return false;
     }
-  }, []);
+  }, [projectId]);
 
   // Fetch when options change
   useEffect(() => {

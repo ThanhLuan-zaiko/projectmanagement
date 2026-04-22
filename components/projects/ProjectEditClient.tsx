@@ -8,6 +8,7 @@ import { validateProjectFormData, validateProjectField, type ValidatableField } 
 import ProjectForm from './ProjectForm';
 import ProjectsPageHeader from './ProjectsPageHeader';
 import { formatProjectBudget, formatProjectDate, getStatusLabel } from './project-utils';
+import { apiFetch } from '@/utils/api-client';
 
 interface ProjectEditClientProps {
   projectId: string;
@@ -36,7 +37,7 @@ export default function ProjectEditClient({ projectId }: ProjectEditClientProps)
         setLoading(true);
         setError('');
 
-        const response = await fetch(`/api/projects/${projectId}`, {
+        const response = await apiFetch(`/api/projects/${projectId}`, {
           cache: 'no-store',
         });
         const data = await response.json();
@@ -110,7 +111,7 @@ export default function ProjectEditClient({ projectId }: ProjectEditClientProps)
     setSubmitting(true);
 
     try {
-      const response = await fetch(`/api/projects/${projectId}`, {
+      const response = await apiFetch(`/api/projects/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitizedData),

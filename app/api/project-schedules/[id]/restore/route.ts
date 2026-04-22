@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { projectScheduleRepository } from '@/lib/project-schedule-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateProjectSchedulePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,29 +17,32 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateProjectSchedulePayload(body, 'update');
 
-    if (!body.project_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID is required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted schedule fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const schedule = await projectScheduleRepository.findById(id, { params: [body.project_id] });
+    const schedule = await projectScheduleRepository.findById(id, { params: [projectId] });
 
     if (!schedule) {
-      return NextResponse.json(
-        { success: false, error: 'Project schedule not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Project schedule not found');
     }
 
     if (!schedule.is_deleted) {
@@ -47,7 +53,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await projectScheduleRepository.restore(id, {
-      project_id: body.project_id,
+      project_id: projectId,
     });
 
     return NextResponse.json({
@@ -55,10 +61,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       message: 'Project schedule restored successfully',
     });
   } catch (error) {
-    console.error('Error restoring project schedule:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to restore project schedule' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to restore project schedule');
   }
 }

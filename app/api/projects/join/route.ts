@@ -5,20 +5,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { projectRepository, projectTeamRepository } from '@/lib/project-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { validateProjectCode } from '@/lib/project-validation';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
 
 // POST /api/projects/join
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
-    const body = await request.json();
-    const codeValidation = validateProjectCode(body.project_code || '');
+    requireCsrf(request);
+    const body = await parseJsonBody<{ project_code?: unknown }>(request);
+    const projectCode = typeof body.project_code === 'string' ? body.project_code : '';
+    const codeValidation = validateProjectCode(projectCode);
 
     if (codeValidation.error) {
       return NextResponse.json(
@@ -82,10 +82,6 @@ export async function POST(request: NextRequest) {
       message: 'Joined project successfully',
     });
   } catch (error) {
-    console.error('Error joining project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to join project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to join project');
   }
 }

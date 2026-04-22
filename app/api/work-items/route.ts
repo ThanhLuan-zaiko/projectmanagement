@@ -3,25 +3,29 @@
 // POST - Create a new work item
 
 import { NextRequest, NextResponse } from 'next/server';
-import { workItemRepository } from '@/lib/work-item-repository';
+import { workItemRepository, type WorkItem } from '@/lib/work-item-repository';
 import { getCurrentUser } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
+import { errorResponse, handleRouteError, parseIntegerParam, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateWorkItemPayload } from '@/lib/dashboard-validation';
+import { generateUUIDv7 } from '@/utils/uuid';
 
 // GET /api/work-items?project_id=&search=&status=&priority=&work_type=&page=&limit=&sort_by=&sort_order=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { searchParams } = new URL(request.url);
 
-    // Project ID is optional - use default if not provided
-    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
+    const projectId = searchParams.get('project_id');
+
+    if (!projectId) {
+      return errorResponse(400, 'Project ID is required');
+    }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     // Filters
     const search = searchParams.get('search') || '';
@@ -30,8 +34,8 @@ export async function GET(request: NextRequest) {
     const workType = searchParams.get('work_type') || 'all';
 
     // Pagination
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseIntegerParam(searchParams.get('page'), 1);
+    const limit = parseIntegerParam(searchParams.get('limit'), 10);
     const offset = (page - 1) * limit;
 
     // Sorting
@@ -60,8 +64,26 @@ export async function GET(request: NextRequest) {
 
     // Apply sorting
     workItems = workItems.sort((a, b) => {
-      const aValue = (a as any)[sortBy];
-      const bValue = (b as any)[sortBy];
+      const getSortValue = (item: typeof workItems[number]) => {
+        switch (sortBy) {
+          case 'updated_at':
+            return new Date(item.updated_at || 0).getTime();
+          case 'title':
+            return String(item.title || '').toLowerCase();
+          case 'priority':
+            return String(item.priority || '').toLowerCase();
+          case 'status':
+            return String(item.status || '').toLowerCase();
+          case 'due_date':
+            return item.due_date ? new Date(item.due_date).getTime() : 0;
+          case 'created_at':
+          default:
+            return new Date(item.created_at || 0).getTime();
+        }
+      };
+
+      const aValue = getSortValue(a);
+      const bValue = getSortValue(b);
 
       if (sortOrder === 'asc') {
         return aValue > bValue ? 1 : -1;
@@ -95,11 +117,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching work items:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch work items' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch work items');
   }
 }
 
@@ -108,46 +126,46 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkItemPayload(body, 'create');
 
-    // Validate required fields
-    if (!body.title) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Title is required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted task fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
-
-    if (!body.project_id) {
-      // For demo purposes, we'll use a default project ID
-      body.project_id = '00000000-0000-0000-0000-000000000001';
-    }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
     // Generate UUID for work item
-    const workItemId = uuidv4();
+    const workItemId = generateUUIDv7();
 
-    const workItemData = {
+    const workItemData: Partial<WorkItem> = {
       work_item_id: workItemId,
-      project_id: body.project_id,
-      title: body.title,
-      description: body.description || '',
-      work_type: body.work_type || 'task',
-      status: body.status || 'todo',
-      priority: body.priority || 'medium',
+      project_id: projectId,
+      title: String(sanitizedBody.title),
+      description: sanitizedBody.description || '',
+      work_type: sanitizedBody.work_type ?? 'task',
+      status: sanitizedBody.status ?? 'todo',
+      priority: sanitizedBody.priority ?? 'medium',
       created_by: user.user_id,
-      assigned_to: body.assigned_to || null,
-      due_date: body.due_date || null,
-      estimated_hours: body.estimated_hours || null,
-      actual_hours: body.actual_hours || null,
-      parent_work_item_id: body.parent_work_item_id || null,
-      tags: body.tags || [],
-      attachments: body.attachments || [],
+      assigned_to: sanitizedBody.assigned_to ?? null,
+      due_date: sanitizedBody.due_date ?? null,
+      estimated_hours: sanitizedBody.estimated_hours ?? null,
+      actual_hours: sanitizedBody.actual_hours ?? null,
+      parent_work_item_id: sanitizedBody.parent_work_item_id ?? null,
+      tags: sanitizedBody.tags ?? [],
+      attachments: sanitizedBody.attachments ?? [],
     };
 
     const workItem = await workItemRepository.create(workItemData);
@@ -158,10 +176,6 @@ export async function POST(request: NextRequest) {
       message: 'Work item created successfully',
     });
   } catch (error) {
-    console.error('Error creating work item:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create work item' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to create work item');
   }
 }

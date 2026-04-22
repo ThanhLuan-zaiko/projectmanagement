@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { costEstimateRepository } from '@/lib/cost-estimate-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateCostEstimatePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -16,10 +19,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
@@ -28,19 +28,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const workItemId = searchParams.get('work_item_id');
 
     if (!projectId || !workItemId) {
-      return NextResponse.json(
-        { success: false, error: 'Project ID and Work Item ID are required' },
-        { status: 400 }
-      );
+      return errorResponse(400, 'Project ID and Work Item ID are required');
     }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     const estimate = await costEstimateRepository.findById(id, { params: [projectId, workItemId] });
 
     if (!estimate) {
-      return NextResponse.json(
-        { success: false, error: 'Cost estimate not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Cost estimate not found');
     }
 
     return NextResponse.json({
@@ -48,11 +43,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       data: estimate,
     });
   } catch (error) {
-    console.error('Error fetching cost estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch cost estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch cost estimate');
   }
 }
 
@@ -61,52 +52,55 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateCostEstimatePayload(body, 'update');
 
-    // Validate required fields for composite key
-    if (!body.project_id || !body.work_item_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID and Work Item ID are required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted cost estimate fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    const workItemId = String(sanitizedBody.work_item_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const estimate = await costEstimateRepository.findById(id, { params: [body.project_id, body.work_item_id] });
+    const estimate = await costEstimateRepository.findById(id, { params: [projectId, workItemId] });
     if (!estimate) {
-      return NextResponse.json(
-        { success: false, error: 'Cost estimate not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Cost estimate not found');
     }
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
-      project_id: body.project_id,
-      work_item_id: body.work_item_id,
+      project_id: projectId,
+      work_item_id: workItemId,
     };
 
-    if (body.estimate_type !== undefined) updateData.estimate_type = body.estimate_type;
-    if (body.estimated_cost !== undefined) updateData.estimated_cost = body.estimated_cost;
-    if (body.currency !== undefined) updateData.currency = body.currency;
-    if (body.hourly_rate !== undefined) updateData.hourly_rate = body.hourly_rate;
-    if (body.hours !== undefined) updateData.hours = body.hours;
-    if (body.quantity !== undefined) updateData.quantity = body.quantity;
-    if (body.unit_cost !== undefined) updateData.unit_cost = body.unit_cost;
-    if (body.notes !== undefined) updateData.notes = body.notes;
-    if (body.status !== undefined) updateData.status = body.status;
+    if (sanitizedBody.estimate_type !== undefined) updateData.estimate_type = sanitizedBody.estimate_type;
+    if (sanitizedBody.estimated_cost !== undefined) updateData.estimated_cost = sanitizedBody.estimated_cost;
+    if (sanitizedBody.currency !== undefined) updateData.currency = sanitizedBody.currency;
+    if (sanitizedBody.hourly_rate !== undefined) updateData.hourly_rate = sanitizedBody.hourly_rate;
+    if (sanitizedBody.hours !== undefined) updateData.hours = sanitizedBody.hours;
+    if (sanitizedBody.quantity !== undefined) updateData.quantity = sanitizedBody.quantity;
+    if (sanitizedBody.unit_cost !== undefined) updateData.unit_cost = sanitizedBody.unit_cost;
+    if (sanitizedBody.notes !== undefined) updateData.notes = sanitizedBody.notes;
+    if (sanitizedBody.status !== undefined) updateData.status = sanitizedBody.status;
 
     // Recalculate estimated_cost if type and rates changed
-    if (body.estimate_type === 'labor' && body.hourly_rate && body.hours) {
-      updateData.estimated_cost = body.hourly_rate * body.hours;
-    } else if (body.estimate_type === 'material' && body.quantity && body.unit_cost) {
-      updateData.estimated_cost = body.quantity * body.unit_cost;
+    if (sanitizedBody.estimate_type === 'labor' && sanitizedBody.hourly_rate && sanitizedBody.hours) {
+      updateData.estimated_cost = Number(sanitizedBody.hourly_rate) * Number(sanitizedBody.hours);
+    } else if (sanitizedBody.estimate_type === 'material' && sanitizedBody.quantity && sanitizedBody.unit_cost) {
+      updateData.estimated_cost = Number(sanitizedBody.quantity) * Number(sanitizedBody.unit_cost);
     }
 
     const updatedEstimate = await costEstimateRepository.update(id, updateData);
@@ -117,11 +111,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       message: 'Cost estimate updated successfully',
     });
   } catch (error) {
-    console.error('Error updating cost estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update cost estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to update cost estimate');
   }
 }
 
@@ -131,39 +121,43 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
     const permanent = searchParams.get('permanent') === 'true';
 
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateCostEstimatePayload(body, 'update');
 
-    if (!body.project_id || !body.work_item_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID and Work Item ID are required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted cost estimate fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    const workItemId = String(sanitizedBody.work_item_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const estimate = await costEstimateRepository.findById(id, { params: [body.project_id, body.work_item_id] });
+    const estimate = await costEstimateRepository.findById(id, { params: [projectId, workItemId] });
 
     if (!estimate) {
-      return NextResponse.json(
-        { success: false, error: 'Cost estimate not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Cost estimate not found');
     }
 
     if (permanent) {
       // Hard delete - permanently remove
       await costEstimateRepository.hardDelete(id, {
-        project_id: body.project_id,
-        work_item_id: body.work_item_id,
+        project_id: projectId,
+        work_item_id: workItemId,
       });
 
       return NextResponse.json({
@@ -173,8 +167,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     } else {
       // Soft delete - mark as deleted
       await costEstimateRepository.softDelete(id, user.user_id, {
-        project_id: body.project_id,
-        work_item_id: body.work_item_id,
+        project_id: projectId,
+        work_item_id: workItemId,
       });
 
       return NextResponse.json({
@@ -183,10 +177,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       });
     }
   } catch (error) {
-    console.error('Error deleting cost estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete cost estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to delete cost estimate');
   }
 }

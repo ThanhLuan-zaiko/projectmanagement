@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiRefreshCw, FiChevronDown, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { FiSearch, FiRefreshCw, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import CustomSelect from '@/components/ui/CustomSelect';
 
 interface FilterOption {
@@ -29,6 +29,7 @@ interface TableFiltersProps {
   sortOrder: 'asc' | 'desc';
   sortOptions?: Array<{ value: string; label: string }>;
   onSortChange: (sortBy: string) => void;
+  onSortOrderToggle?: () => void;
 
   // Items per page
   limit: number;
@@ -56,6 +57,7 @@ export default function TableFilters({
     { value: 'status', label: 'Status' },
   ],
   onSortChange,
+  onSortOrderToggle,
   limit,
   onLimitChange,
   limitOptions = [5, 10, 20, 50],
@@ -79,7 +81,7 @@ export default function TableFilters({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [localSearch]);
+  }, [localSearch, onSearchChange, search]);
 
   const hasActiveFilters =
     search || filters.some((f) => f.value && f.value !== 'all');
@@ -119,7 +121,7 @@ export default function TableFilters({
           </div>
 
           {/* Dynamic Filters */}
-          {filters.slice(0, 3).map((filter, index) => (
+          {filters.slice(0, 3).map((filter) => (
             <div key={filter.key}>
               <CustomSelect
                 name={filter.key}
@@ -164,7 +166,7 @@ export default function TableFilters({
                   usePortal={true}
                 />
                 <button
-                  onClick={() => onSortChange(sortBy)}
+                  onClick={() => onSortOrderToggle?.()}
                   className="p-2 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-slate-600/50 transition-all text-slate-400 hover:text-white"
                   title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                 >

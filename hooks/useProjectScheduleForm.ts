@@ -1,13 +1,17 @@
 // Custom hook for project schedule form state management
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ProjectSchedule, ProjectScheduleFormData } from '@/types/project-schedule';
+import { apiFetch } from '@/utils/api-client';
 
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
+interface UseProjectScheduleFormOptions {
+  projectId?: string;
+  onSuccess?: () => void | Promise<void>;
+}
 
-const initialFormData: ProjectScheduleFormData = {
-  project_id: DEFAULT_PROJECT_ID,
+const getInitialFormData = (projectId?: string): ProjectScheduleFormData => ({
+  project_id: projectId || '',
   schedule_name: '',
   schedule_type: 'phase',
   start_date: '',
@@ -15,16 +19,23 @@ const initialFormData: ProjectScheduleFormData = {
   status: 'planned',
   progress_percentage: '0',
   parent_schedule_id: '',
-};
+});
 
-export function useProjectScheduleForm(onSuccess?: () => void) {
-  const [formData, setFormData] = useState<ProjectScheduleFormData>(initialFormData);
+export function useProjectScheduleForm(options: UseProjectScheduleFormOptions = {}) {
+  const { projectId, onSuccess } = options;
+  const [formData, setFormData] = useState<ProjectScheduleFormData>(getInitialFormData(projectId));
   const [editingItem, setEditingItem] = useState<ProjectSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (!editingItem) {
+      setFormData((prev) => ({ ...prev, project_id: projectId || '' }));
+    }
+  }, [projectId, editingItem]);
+
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData(projectId));
     setEditingItem(null);
     setValidationErrors([]);
   };
@@ -77,7 +88,7 @@ export function useProjectScheduleForm(onSuccess?: () => void) {
 
       const method = editingItem ? 'PUT' : 'POST';
 
-      const requestBody: any = {
+      const requestBody: Record<string, string | number | null> = {
         project_id: formData.project_id,
         schedule_name: formData.schedule_name,
         schedule_type: formData.schedule_type,
@@ -88,7 +99,7 @@ export function useProjectScheduleForm(onSuccess?: () => void) {
         parent_schedule_id: formData.parent_schedule_id || null,
       };
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

@@ -15,6 +15,7 @@ export interface WorkItem {
   due_date: string | null;
   estimated_hours: number | null;
   actual_hours: number | null;
+  parent_work_item_id?: string | null;
   tags: string[];
 }
 

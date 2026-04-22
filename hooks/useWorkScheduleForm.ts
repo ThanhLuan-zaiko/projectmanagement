@@ -1,13 +1,17 @@
 // Custom hook for work schedule form state management
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { WorkItemSchedule, WorkItemScheduleFormData } from '@/types/work-schedule';
+import { apiFetch } from '@/utils/api-client';
 
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
+interface UseWorkScheduleFormOptions {
+  projectId?: string;
+  onSuccess?: () => void | Promise<void>;
+}
 
-const initialFormData: WorkItemScheduleFormData = {
-  project_id: DEFAULT_PROJECT_ID,
+const getInitialFormData = (projectId?: string): WorkItemScheduleFormData => ({
+  project_id: projectId || '',
   work_item_id: '',
   schedule_id: '',
   planned_start_date: '',
@@ -20,16 +24,23 @@ const initialFormData: WorkItemScheduleFormData = {
   completion_percentage: '0',
   is_critical_path: false,
   dependencies: [],
-};
+});
 
-export function useWorkScheduleForm(onSuccess?: () => void) {
-  const [formData, setFormData] = useState<WorkItemScheduleFormData>(initialFormData);
+export function useWorkScheduleForm(options: UseWorkScheduleFormOptions = {}) {
+  const { projectId, onSuccess } = options;
+  const [formData, setFormData] = useState<WorkItemScheduleFormData>(getInitialFormData(projectId));
   const [editingItem, setEditingItem] = useState<WorkItemSchedule | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (!editingItem) {
+      setFormData((prev) => ({ ...prev, project_id: projectId || '' }));
+    }
+  }, [projectId, editingItem]);
+
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData(projectId));
     setEditingItem(null);
     setValidationErrors([]);
   };
@@ -79,7 +90,7 @@ export function useWorkScheduleForm(onSuccess?: () => void) {
 
       const method = editingItem ? 'PUT' : 'POST';
 
-      const requestBody: any = {
+      const requestBody: Record<string, string | number | boolean | string[] | null> = {
         project_id: formData.project_id,
         work_item_id: formData.work_item_id,
         schedule_id: formData.schedule_id || null,
@@ -95,7 +106,7 @@ export function useWorkScheduleForm(onSuccess?: () => void) {
         dependencies: formData.dependencies,
       };
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

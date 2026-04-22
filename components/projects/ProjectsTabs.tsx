@@ -36,6 +36,8 @@ export default function ProjectsTabs() {
             <Link
               key={tab.href}
               href={tab.href}
+              prefetch={true}
+              data-speculate="prerender"
               className={`flex min-w-fit items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
                 isActive
                   ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20'

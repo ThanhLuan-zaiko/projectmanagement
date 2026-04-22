@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { useProject } from '@/app/[projectCode]/layout';
+import { DashboardLayout } from '@/components/layout';
 
 interface DashboardSubLayoutProps {
   children: ReactNode;
@@ -18,5 +19,5 @@ export default function DashboardSubLayout({ children }: DashboardSubLayoutProps
     );
   }
 
-  return <>{children}</>;
+  return <DashboardLayout>{children}</DashboardLayout>;
 }

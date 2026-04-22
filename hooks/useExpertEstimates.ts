@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ExpertTimeEstimate } from '@/types/expert-estimate';
+import { apiFetch } from '@/utils/api-client';
 
 interface PaginationInfo {
   page: number;
@@ -15,10 +16,13 @@ interface PaginationInfo {
 
 interface UseExpertEstimatesOptions {
   projectId?: string;
+  search?: string;
   workItemId: string;
   expertId: string;
   confidence: string;
   method: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   page: number;
   limit: number;
   includeDeleted?: boolean;
@@ -38,10 +42,13 @@ interface UseExpertEstimatesResult {
 export function useExpertEstimates(options: UseExpertEstimatesOptions): UseExpertEstimatesResult {
   const {
     projectId,
+    search = '',
     workItemId,
     expertId,
     confidence,
     method,
+    sortBy = 'estimated_at',
+    sortOrder = 'desc',
     page,
     limit,
     includeDeleted = false,
@@ -62,6 +69,21 @@ export function useExpertEstimates(options: UseExpertEstimatesOptions): UseExper
   });
 
   const fetchEstimates = useCallback(async () => {
+    if (!projectId) {
+      setEstimates([]);
+      setPagination((prev) => ({
+        ...prev,
+        page: 1,
+        total: 0,
+        totalPages: alwaysShowPagination ? 1 : 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -69,16 +91,19 @@ export function useExpertEstimates(options: UseExpertEstimatesOptions): UseExper
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...(projectId && { project_id: projectId }),
+        project_id: projectId,
+        ...(search && { search }),
         ...(workItemId && { work_item_id: workItemId }),
         ...(expertId && { expert_id: expertId }),
         ...(confidence && confidence !== 'all' && { confidence }),
         ...(method && method !== 'all' && { method }),
+        sort_by: sortBy,
+        sort_order: sortOrder,
         ...(includeDeleted && { include_deleted: 'true' }),
         ...(deletedOnly && { deleted_only: 'true' }),
       });
 
-      const response = await fetch(`/api/expert-estimates?${params.toString()}`, {
+      const response = await apiFetch(`/api/expert-estimates?${params.toString()}`, {
         cache: 'no-store',
       });
       const data = await response.json();
@@ -97,7 +122,7 @@ export function useExpertEstimates(options: UseExpertEstimatesOptions): UseExper
     } finally {
       setLoading(false);
     }
-  }, [projectId, workItemId, expertId, confidence, method, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
+  }, [projectId, search, workItemId, expertId, confidence, method, sortBy, sortOrder, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
 
   const refresh = useCallback(async () => {
     await fetchEstimates();

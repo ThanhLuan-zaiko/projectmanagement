@@ -8,6 +8,7 @@ import { validateProjectCode, validateProjectField, validateProjectFormData, typ
 import JoinProjectCard from './JoinProjectCard';
 import ProjectForm from './ProjectForm';
 import ProjectsPageHeader from './ProjectsPageHeader';
+import { apiFetch } from '@/utils/api-client';
 
 const initialFormData: ProjectFormData = {
   project_name: '',
@@ -73,7 +74,7 @@ export default function ProjectsCreateClient() {
     setIsCreating(true);
 
     try {
-      const response = await fetch('/api/projects', {
+      const response = await apiFetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.sanitizedData),
@@ -112,7 +113,7 @@ export default function ProjectsCreateClient() {
     setIsJoining(true);
 
     try {
-      const response = await fetch('/api/projects/join', {
+      const response = await apiFetch('/api/projects/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_code: codeValidation.value }),

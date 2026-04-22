@@ -1,6 +1,7 @@
 // Project Repository
 import { BaseRepository } from './repository';
 import { db, insert, type QueryOptions } from '@/config';
+import { generateUUIDv7 } from '@/utils/uuid';
 
 export interface Project extends Record<string, unknown> {
   project_id: string;
@@ -105,7 +106,7 @@ export class ProjectRepository extends BaseRepository<Project> {
     const now = new Date();
 
     const projectData = {
-      project_id: data.project_id || crypto.randomUUID(),
+      project_id: data.project_id || generateUUIDv7(),
       project_code: projectCode,
       project_name: data.project_name || '',
       description: data.description || '',

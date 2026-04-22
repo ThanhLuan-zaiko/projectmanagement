@@ -7,16 +7,15 @@ import { projectRepository, projectTeamRepository } from '@/lib/project-reposito
 import { getCurrentUser } from '@/lib/auth';
 import { getProjectPortfolio } from '@/lib/project-service';
 import { validateProjectFormData } from '@/lib/project-validation';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import type { ProjectFormData } from '@/types/project';
 
 // GET /api/projects
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { searchParams } = new URL(request.url);
@@ -57,11 +56,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching projects:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch projects' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch projects');
   }
 }
 
@@ -70,13 +65,11 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody<ProjectFormData>(request);
     const validation = validateProjectFormData(body);
 
     if (!validation.sanitizedData) {
@@ -120,10 +113,6 @@ export async function POST(request: NextRequest) {
       message: 'Project created successfully',
     });
   } catch (error) {
-    console.error('Error creating project:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create project' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to create project');
   }
 }

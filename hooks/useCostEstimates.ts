@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CostEstimate } from '@/types/cost-estimate';
+import { apiFetch } from '@/utils/api-client';
 
 interface PaginationInfo {
   page: number;
@@ -15,9 +16,12 @@ interface PaginationInfo {
 
 interface UseCostEstimatesOptions {
   projectId?: string;
+  search?: string;
   workItemId: string;
   estimateType: string;
   status: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   page: number;
   limit: number;
   includeDeleted?: boolean;
@@ -37,9 +41,12 @@ interface UseCostEstimatesResult {
 export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstimatesResult {
   const {
     projectId,
+    search = '',
     workItemId,
     estimateType,
     status,
+    sortBy = 'estimated_at',
+    sortOrder = 'desc',
     page,
     limit,
     includeDeleted = false,
@@ -60,6 +67,21 @@ export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstim
   });
 
   const fetchEstimates = useCallback(async () => {
+    if (!projectId) {
+      setEstimates([]);
+      setPagination((prev) => ({
+        ...prev,
+        page: 1,
+        total: 0,
+        totalPages: alwaysShowPagination ? 1 : 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -67,16 +89,19 @@ export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstim
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...(projectId && { project_id: projectId }),
+        project_id: projectId,
+        ...(search && { search }),
         ...(workItemId && { work_item_id: workItemId }),
         ...(estimateType && estimateType !== 'all' && { estimate_type: estimateType }),
         ...(status && status !== 'all' && { status }),
+        sort_by: sortBy,
+        sort_order: sortOrder,
         ...(includeDeleted && { include_deleted: 'true' }),
         ...(deletedOnly && { deleted_only: 'true' }),
         t: Date.now().toString(),
       });
 
-      const response = await fetch(`/api/cost-estimates?${params.toString()}`, {
+      const response = await apiFetch(`/api/cost-estimates?${params.toString()}`, {
         cache: 'no-store',
       });
       const data = await response.json();
@@ -95,7 +120,7 @@ export function useCostEstimates(options: UseCostEstimatesOptions): UseCostEstim
     } finally {
       setLoading(false);
     }
-  }, [projectId, workItemId, estimateType, status, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
+  }, [projectId, search, workItemId, estimateType, status, sortBy, sortOrder, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
 
   const refresh = useCallback(async () => {
     await fetchEstimates();

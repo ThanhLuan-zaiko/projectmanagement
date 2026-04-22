@@ -22,7 +22,7 @@ import {
   WeeklyWorkloadChart,
   StatusFlowChart,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function DashboardSkeleton() {
   return (
@@ -84,16 +84,13 @@ export default function ProjectDashboardPage() {
   }
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title={project?.project_name || 'Dashboard'}
-          subtitle={`Project: ${project?.project_code}`}
-          actionLabel="Create Task"
-          onAction={handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title={project?.project_name || 'Dashboard'}
+        subtitle={`Project: ${project?.project_code}`}
+        actionLabel="Create Task"
+        onAction={handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -240,6 +237,6 @@ export default function ProjectDashboardPage() {
         onReset={() => {}}
         validationErrors={[]}
       />
-    </DashboardLayout>
+    </>
   );
 }

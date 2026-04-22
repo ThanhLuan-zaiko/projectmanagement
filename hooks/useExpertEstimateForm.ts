@@ -1,13 +1,17 @@
 // Custom hook for expert estimate form state management
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExpertTimeEstimate, ExpertEstimateFormData } from '@/types/expert-estimate';
+import { apiFetch } from '@/utils/api-client';
 
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
+interface UseExpertEstimateFormOptions {
+  projectId?: string;
+  onSuccess?: () => void | Promise<void>;
+}
 
-const initialFormData: ExpertEstimateFormData = {
-  project_id: DEFAULT_PROJECT_ID,
+const getInitialFormData = (projectId?: string): ExpertEstimateFormData => ({
+  project_id: projectId || '',
   work_item_id: '',
   expert_id: '',
   estimated_hours: '',
@@ -17,16 +21,23 @@ const initialFormData: ExpertEstimateFormData = {
   most_likely_hours: '',
   pessimistic_hours: '',
   notes: '',
-};
+});
 
-export function useExpertEstimateForm(onSuccess?: () => void) {
-  const [formData, setFormData] = useState<ExpertEstimateFormData>(initialFormData);
+export function useExpertEstimateForm(options: UseExpertEstimateFormOptions = {}) {
+  const { projectId, onSuccess } = options;
+  const [formData, setFormData] = useState<ExpertEstimateFormData>(getInitialFormData(projectId));
   const [editingItem, setEditingItem] = useState<ExpertTimeEstimate | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    if (!editingItem) {
+      setFormData((prev) => ({ ...prev, project_id: projectId || '' }));
+    }
+  }, [projectId, editingItem]);
+
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData(getInitialFormData(projectId));
     setEditingItem(null);
     setValidationErrors([]);
   };
@@ -77,7 +88,7 @@ export function useExpertEstimateForm(onSuccess?: () => void) {
 
       const method = editingItem ? 'PUT' : 'POST';
 
-      const requestBody: any = {
+      const requestBody: Record<string, string | number | null> = {
         project_id: formData.project_id,
         work_item_id: formData.work_item_id,
         expert_id: formData.expert_id,
@@ -95,7 +106,7 @@ export function useExpertEstimateForm(onSuccess?: () => void) {
         requestBody.estimated_hours = formData.estimated_hours ? parseFloat(formData.estimated_hours) : null;
       }
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),

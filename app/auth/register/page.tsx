@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiUserPlus, FiLoader, FiAlertCircle } from 'react-icons/fi';
 import AuthLayout from '../AuthLayout';
 import AuthFormFields from '../AuthFormFields';
 import AuthAlert from '../AuthAlert';
 import { FormData, FormErrors } from '../types';
+import { apiFetch } from '@/utils/api-client';
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -62,7 +61,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -91,7 +90,7 @@ export default function RegisterPage() {
       setTimeout(() => {
         window.location.href = '/projects';
       }, 1500);
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

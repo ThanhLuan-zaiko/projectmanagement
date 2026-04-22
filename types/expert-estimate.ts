@@ -13,6 +13,7 @@ export interface ExpertTimeEstimate {
   pessimistic_hours: number | null;
   notes: string | null;
   estimated_at: string;
+  updated_at?: string;
   estimated_by: string | null;
   expert_name?: string;
   work_item_title?: string;

@@ -16,7 +16,8 @@ import {
   TableFilters,
   TablePagination,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
+import { apiFetch } from '@/utils/api-client';
 
 function ExpertSkeleton() {
   return (
@@ -77,7 +78,6 @@ function ExpertsContent() {
     pagination,
     createExpert,
     updateExpert,
-    deleteExpert,
     refresh,
   } = useExperts({
     projectId: project?.project_id || '',
@@ -130,7 +130,7 @@ function ExpertsContent() {
         success = await createExpert({
           ...formData,
           project_id: project?.project_id,
-        } as any);
+        });
       }
 
       if (success) {
@@ -229,9 +229,12 @@ function ExpertsContent() {
   const handleHardDelete = async (expert: Expert) => {
     setDeletingId(expert.expert_id);
     try {
-      const response = await fetch(`/api/experts/${expert.expert_id}?permanent=true`, {
+      const response = await apiFetch(
+        `/api/experts/${expert.expert_id}?permanent=true&project_id=${encodeURIComponent(expert.project_id)}`,
+        {
         method: 'DELETE',
-      });
+        }
+      );
       const data = await response.json();
       if (data.success) {
         await refreshData();
@@ -273,16 +276,13 @@ function ExpertsContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title="Expert Management"
-          subtitle="Manage your team of experts and their specializations"
-          actionLabel="Add Expert"
-          onAction={handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title="Expert Management"
+        subtitle="Manage your team of experts and their specializations"
+        actionLabel="Add Expert"
+        onAction={handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -327,7 +327,8 @@ function ExpertsContent() {
               { value: 'experience_years', label: 'Experience' },
               { value: 'hourly_rate', label: 'Hourly Rate' },
             ]}
-            onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+            onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+            onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
             limit={urlFilters.limit}
             onLimitChange={urlFilters.setLimit}
             onRefresh={refreshData}
@@ -401,7 +402,7 @@ function ExpertsContent() {
         onSoftDelete={() => itemToDelete && handleDelete(itemToDelete)}
         onHardDelete={() => itemToDelete && handleHardDelete(itemToDelete)}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

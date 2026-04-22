@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateSession, revokeSessionByUserId } from '@/utils/session';
 import { db } from '@/config';
+import { handleRouteError, requireCsrf } from '@/lib/api-route';
 
 export async function POST(request: NextRequest) {
   try {
+    requireCsrf(request);
     // Get session token from cookie
     const sessionToken = request.cookies.get('session_id')?.value;
 
@@ -36,11 +38,7 @@ export async function POST(request: NextRequest) {
     // Clear auth cookies
     return clearAuthCookies();
   } catch (error) {
-    console.error('Logout API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Internal server error');
   }
 }
 

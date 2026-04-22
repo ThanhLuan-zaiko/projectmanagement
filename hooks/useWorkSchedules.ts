@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WorkItemSchedule } from '@/types/work-schedule';
+import { apiFetch } from '@/utils/api-client';
 
 interface PaginationInfo {
   page: number;
@@ -15,7 +16,10 @@ interface PaginationInfo {
 
 interface UseWorkSchedulesOptions {
   projectId?: string;
+  search?: string;
   status: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   page: number;
   limit: number;
   includeDeleted?: boolean;
@@ -35,7 +39,10 @@ interface UseWorkSchedulesResult {
 export function useWorkSchedules(options: UseWorkSchedulesOptions): UseWorkSchedulesResult {
   const {
     projectId,
+    search = '',
     status,
+    sortBy = 'scheduled_at',
+    sortOrder = 'desc',
     page,
     limit,
     includeDeleted = false,
@@ -56,6 +63,21 @@ export function useWorkSchedules(options: UseWorkSchedulesOptions): UseWorkSched
   });
 
   const fetchSchedules = useCallback(async () => {
+    if (!projectId) {
+      setSchedules([]);
+      setPagination((prev) => ({
+        ...prev,
+        page: 1,
+        total: 0,
+        totalPages: alwaysShowPagination ? 1 : 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -63,13 +85,16 @@ export function useWorkSchedules(options: UseWorkSchedulesOptions): UseWorkSched
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...(projectId && { project_id: projectId }),
+        project_id: projectId,
+        ...(search && { search }),
         ...(status && status !== 'all' && { status }),
+        sort_by: sortBy,
+        sort_order: sortOrder,
         ...(includeDeleted && { include_deleted: 'true' }),
         ...(deletedOnly && { deleted_only: 'true' }),
       });
 
-      const response = await fetch(`/api/work-schedules?${params.toString()}`, {
+      const response = await apiFetch(`/api/work-schedules?${params.toString()}`, {
         cache: 'no-store',
       });
       const data = await response.json();
@@ -88,7 +113,7 @@ export function useWorkSchedules(options: UseWorkSchedulesOptions): UseWorkSched
     } finally {
       setLoading(false);
     }
-  }, [projectId, status, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
+  }, [projectId, search, status, sortBy, sortOrder, page, limit, includeDeleted, deletedOnly, alwaysShowPagination]);
 
   const refresh = useCallback(async () => {
     await fetchSchedules();

@@ -1,7 +1,7 @@
 // Project Schedule Repository
 import { BaseRepository } from './repository';
-import { db } from '@/config';
-const { TimeUuid } = require('cassandra-driver').types;
+import { db, insert, update as buildUpdate, type QueryOptions } from '@/config';
+import { generateUUIDv7 } from '@/utils/uuid';
 
 export interface ProjectSchedule extends Record<string, unknown> {
   project_id: string;
@@ -28,9 +28,9 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
   protected primaryKey = 'schedule_id';
 
   // Override create to handle composite key
-  async create(data: Partial<ProjectSchedule>, options?: any): Promise<ProjectSchedule> {
-    const schedule_id = TimeUuid.now().toString();
-    
+  async create(data: Partial<ProjectSchedule>, options?: QueryOptions): Promise<ProjectSchedule> {
+    const schedule_id = generateUUIDv7();
+
     // Calculate duration if dates are provided
     let plannedDurationDays = data.planned_duration_days;
     if (data.start_date && data.end_date && !plannedDurationDays) {
@@ -49,14 +49,18 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
       is_deleted: false,
     };
 
-    const { query, params } = require('@/config').insert(this.tableName, scheduleData as Record<string, unknown>);
+    const { query, params } = insert(this.tableName, scheduleData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
     return scheduleData as ProjectSchedule;
   }
 
   // Override update to handle composite primary key (project_id, schedule_id)
-  async update(id: string, data: Partial<ProjectSchedule>, options?: any): Promise<ProjectSchedule | null> {
+  async update(
+    id: string,
+    data: Partial<ProjectSchedule>,
+    options?: QueryOptions & { project_id?: string }
+  ): Promise<ProjectSchedule | null> {
     const { project_id, ...restData } = data;
     const projectId = project_id || options?.project_id;
 
@@ -67,7 +71,7 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
     const whereClause = 'project_id = ? AND schedule_id = ?';
     const whereParams = [projectId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = buildUpdate(
       this.tableName,
       { ...restData, updated_at: new Date() } as Record<string, unknown>,
       whereClause,
@@ -79,7 +83,11 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
   }
 
   // Soft delete: mark as deleted instead of removing
-  async softDelete(id: string, userId: string, options?: any): Promise<boolean> {
+  async softDelete(
+    id: string,
+    userId: string,
+    options?: QueryOptions & { project_id?: string }
+  ): Promise<boolean> {
     const projectId = options?.project_id;
 
     if (!projectId) {
@@ -89,7 +97,7 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
     const whereClause = 'project_id = ? AND schedule_id = ?';
     const whereParams = [projectId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = buildUpdate(
       this.tableName,
       { is_deleted: true, deleted_at: new Date(), deleted_by: userId },
       whereClause,
@@ -101,7 +109,7 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
   }
 
   // Hard delete: permanently remove from database
-  async hardDelete(id: string, options?: any): Promise<boolean> {
+  async hardDelete(id: string, options?: QueryOptions & { project_id?: string }): Promise<boolean> {
     const projectId = options?.project_id;
 
     if (!projectId) {
@@ -116,7 +124,7 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
   }
 
   // Restore a soft-deleted schedule
-  async restore(id: string, options?: any): Promise<boolean> {
+  async restore(id: string, options?: QueryOptions & { project_id?: string }): Promise<boolean> {
     const projectId = options?.project_id;
 
     if (!projectId) {
@@ -126,7 +134,7 @@ export class ProjectScheduleRepository extends BaseRepository<ProjectSchedule> {
     const whereClause = 'project_id = ? AND schedule_id = ?';
     const whereParams = [projectId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = buildUpdate(
       this.tableName,
       { is_deleted: false, deleted_at: null, deleted_by: null },
       whereClause,

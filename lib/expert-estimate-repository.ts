@@ -1,7 +1,15 @@
 // Expert Time Estimate Repository
 import { BaseRepository } from './repository';
-import { db } from '@/config';
-const { TimeUuid } = require('cassandra-driver').types;
+import { db, insert, update, type QueryOptions } from '@/config';
+import { types } from 'cassandra-driver';
+
+const { TimeUuid } = types;
+
+type ExpertEstimateMutationOptions = QueryOptions & {
+  project_id?: string;
+  work_item_id?: string;
+  expert_id?: string;
+};
 
 export interface ExpertTimeEstimate extends Record<string, unknown> {
   work_item_id: string;
@@ -16,6 +24,7 @@ export interface ExpertTimeEstimate extends Record<string, unknown> {
   pessimistic_hours: number | null;
   notes: string | null;
   estimated_at: Date;
+  updated_at: Date;
   estimated_by: string | null;
   is_deleted: boolean;
   deleted_at: Date | null;
@@ -39,23 +48,28 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
   protected primaryKey = 'estimate_id';
 
   // Override create to handle composite key
-  async create(data: Partial<ExpertTimeEstimate>, options?: any): Promise<ExpertTimeEstimate> {
+  async create(data: Partial<ExpertTimeEstimate>, options?: QueryOptions): Promise<ExpertTimeEstimate> {
     const estimate_id = TimeUuid.now().toString();
     const estimateData = {
       ...data,
       estimate_id,
       estimated_at: new Date(),
+      updated_at: new Date(),
       is_deleted: false,
     };
 
-    const { query, params } = require('@/config').insert(this.tableName, estimateData as Record<string, unknown>);
+    const { query, params } = insert(this.tableName, estimateData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
     return estimateData as ExpertTimeEstimate;
   }
 
   // Override update to handle composite primary key (project_id, work_item_id, expert_id, estimate_id)
-  async update(id: string, data: Partial<ExpertTimeEstimate>, options?: any): Promise<ExpertTimeEstimate | null> {
+  async update(
+    id: string,
+    data: Partial<ExpertTimeEstimate>,
+    options?: ExpertEstimateMutationOptions
+  ): Promise<ExpertTimeEstimate | null> {
     const { project_id, work_item_id, expert_id, ...restData } = data;
     const projectId = project_id || options?.project_id;
     const workItemId = work_item_id || options?.work_item_id;
@@ -68,7 +82,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     const whereClause = 'project_id = ? AND work_item_id = ? AND expert_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, expertId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
       { ...restData, updated_at: new Date() } as Record<string, unknown>,
       whereClause,
@@ -80,7 +94,11 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
   }
 
   // Soft delete: mark as deleted instead of removing
-  async softDelete(id: string, userId: string, options?: any): Promise<boolean> {
+  async softDelete(
+    id: string,
+    userId: string,
+    options?: ExpertEstimateMutationOptions
+  ): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
     const expertId = options?.expert_id;
@@ -92,9 +110,9 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     const whereClause = 'project_id = ? AND work_item_id = ? AND expert_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, expertId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
-      { is_deleted: true, deleted_at: new Date(), deleted_by: userId },
+      { is_deleted: true, deleted_at: new Date(), deleted_by: userId, updated_at: new Date() },
       whereClause,
       whereParams
     );
@@ -104,7 +122,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
   }
 
   // Hard delete: permanently remove from database
-  async hardDelete(id: string, options?: any): Promise<boolean> {
+  async hardDelete(id: string, options?: ExpertEstimateMutationOptions): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
     const expertId = options?.expert_id;
@@ -121,7 +139,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
   }
 
   // Restore a soft-deleted estimate
-  async restore(id: string, options?: any): Promise<boolean> {
+  async restore(id: string, options?: ExpertEstimateMutationOptions): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
     const expertId = options?.expert_id;
@@ -133,9 +151,9 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     const whereClause = 'project_id = ? AND work_item_id = ? AND expert_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, expertId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
-      { is_deleted: false, deleted_at: null, deleted_by: null },
+      { is_deleted: false, deleted_at: null, deleted_by: null, updated_at: new Date() },
       whereClause,
       whereParams
     );
@@ -181,7 +199,7 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
 
   // Find estimates by expert
   async findByExpert(expertId: string, includeDeleted = false): Promise<ExpertTimeEstimate[]> {
-    let query = 'SELECT * FROM expert_time_estimates WHERE expert_id = ? ALLOW FILTERING';
+    const query = 'SELECT * FROM expert_time_estimates WHERE expert_id = ? ALLOW FILTERING';
     const result = await db.execute<ExpertTimeEstimate>(query, { params: [expertId] });
     
     let estimates = result.rows;
@@ -232,7 +250,11 @@ export class ExpertEstimateRepository extends BaseRepository<ExpertTimeEstimate>
     
     // Enrich with expert details
     const expertIds = [...new Set(estimates.map(e => e.expert_id))];
-    const expertPromises = expertIds.map(id => db.execute('SELECT expert_id, name FROM experts WHERE expert_id = ?', { params: [id] }));
+    const expertPromises = expertIds.map((id) =>
+      db.execute('SELECT expert_id, name FROM experts WHERE project_id = ? AND expert_id = ?', {
+        params: [projectId, id],
+      })
+    );
     const expertResults = await Promise.all(expertPromises);
     
     const expertMap = new Map();

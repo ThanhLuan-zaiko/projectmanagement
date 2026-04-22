@@ -7,7 +7,7 @@ interface TaskCardProps {
   onView: (item: WorkItem) => void;
   onEdit: (item: WorkItem) => void;
   onDelete: (item: WorkItem) => void;
-  onRestore: (id: string) => void;
+  onRestore: (item: WorkItem) => void;
   deletingId: string | null;
 }
 
@@ -75,7 +75,7 @@ export default function TaskCard({ item, onView, onEdit, onDelete, onRestore, de
           {isCancelled ? (
             // Restore button for cancelled tasks
             <button
-              onClick={() => onRestore(item.work_item_id)}
+              onClick={() => onRestore(item)}
               disabled={isDeleting}
               className="p-2 hover:bg-green-500/20 rounded-lg transition-colors text-slate-400 hover:text-green-400 disabled:opacity-50"
               title="Restore task"

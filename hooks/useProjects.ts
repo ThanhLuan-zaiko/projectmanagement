@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { Project } from '@/types/project';
+import { apiFetch } from '@/utils/api-client';
 
 const PROJECTS_CACHE_TTL = 5000;
 
@@ -93,7 +94,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       }
 
       const pending = (async () => {
-        const response = await fetch(`/api/projects?${params.toString()}`, {
+        const response = await apiFetch(`/api/projects?${params.toString()}`, {
           cache: 'no-store',
         });
         const data = await response.json();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useExpertEstimates } from '@/hooks/useExpertEstimates';
@@ -20,7 +20,7 @@ import {
   TableFilters,
   TablePagination,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function ExpertEstimateSkeleton() {
   return (
@@ -69,10 +69,13 @@ function ExpertEstimatesContent() {
     refresh: refreshEstimates,
   } = useExpertEstimates({
     projectId: urlFilters.filters.project_id || project?.project_id || '',
+    search: urlFilters.search,
     workItemId: urlFilters.filters.work_item_id || '',
     expertId: urlFilters.filters.expert_id || '',
     confidence: urlFilters.filters.confidence || 'all',
     method: urlFilters.filters.method || 'all',
+    sortBy: urlFilters.sortBy,
+    sortOrder: urlFilters.sortOrder,
     page: urlFilters.page,
     limit: urlFilters.limit,
     includeDeleted: isTrashTab,
@@ -100,15 +103,7 @@ function ExpertEstimatesContent() {
     handleSubmit: handleFormSubmit,
     handleChange,
     handleEdit,
-    setFormData,
-  } = useExpertEstimateForm(refreshData);
-
-  // Sync project_id from context to form
-  useEffect(() => {
-    if (project?.project_id) {
-      setFormData(prev => ({ ...prev, project_id: project.project_id }));
-    }
-  }, [project?.project_id, setFormData]);
+  } = useExpertEstimateForm({ projectId: project?.project_id });
 
   const {
     showDeleteModal,
@@ -127,18 +122,24 @@ function ExpertEstimatesContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    const isCreating = !editingItem;
     const success = await handleFormSubmit(e);
     if (success) {
       setShowCreateModal(false);
+      if (isCreating && urlFilters.page !== 1) {
+        urlFilters.setPage(1);
+      } else {
+        await refreshData();
+      }
     }
   };
 
   // Fetch real data from APIs
-  const { experts, loading: expertsLoading } = useExperts({
+  const { experts } = useExperts({
     projectId: project?.project_id || '',
     isActive: true,
   });
-  const { workItems, loading: workItemsLoading } = useAllWorkItems({ projectId: project?.project_id || '' });
+  const { workItems } = useAllWorkItems({ projectId: project?.project_id || '' });
 
   // Format data for dropdowns
   const workItemOptions = workItems.map(item => ({
@@ -174,16 +175,13 @@ function ExpertEstimatesContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title={activeTab === 'trash' ? 'Expert Estimate Trash' : 'Expert Time Estimation'}
-          subtitle={activeTab === 'trash' ? 'View and restore deleted expert estimates' : 'Expert-based time estimates for project work items'}
-          actionLabel={activeTab === 'trash' ? undefined : 'Create Estimate'}
-          onAction={activeTab === 'trash' ? undefined : handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title={activeTab === 'trash' ? 'Expert Estimate Trash' : 'Expert Time Estimation'}
+        subtitle={activeTab === 'trash' ? 'View and restore deleted expert estimates' : 'Expert-based time estimates for project work items'}
+        actionLabel={activeTab === 'trash' ? undefined : 'Create Estimate'}
+        onAction={activeTab === 'trash' ? undefined : handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -257,7 +255,8 @@ function ExpertEstimatesContent() {
                   { value: 'estimated_hours', label: 'Estimated Hours' },
                   { value: 'confidence_level', label: 'Confidence Level' },
                 ]}
-                onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+                onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+                onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
                 limit={urlFilters.limit}
                 onLimitChange={urlFilters.setLimit}
                 onRefresh={refreshData}
@@ -333,7 +332,7 @@ function ExpertEstimatesContent() {
         onSoftDelete={() => confirmDelete(false)}
         onHardDelete={() => confirmDelete(true)}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

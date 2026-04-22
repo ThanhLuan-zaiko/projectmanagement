@@ -1,7 +1,14 @@
 // Cost Estimate Repository
 import { BaseRepository } from './repository';
-import { db } from '@/config';
-const { TimeUuid } = require('cassandra-driver').types;
+import { db, insert, update, type QueryOptions } from '@/config';
+import { types } from 'cassandra-driver';
+
+const { TimeUuid } = types;
+
+type CostEstimateMutationOptions = QueryOptions & {
+  project_id?: string;
+  work_item_id?: string;
+};
 
 export interface CostEstimate extends Record<string, unknown> {
   work_item_id: string;
@@ -17,6 +24,7 @@ export interface CostEstimate extends Record<string, unknown> {
   notes: string | null;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   estimated_at: Date;
+  updated_at: Date;
   estimated_by: string | null;
   approved_at: Date | null;
   approved_by: string | null;
@@ -30,23 +38,28 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   protected primaryKey = 'estimate_id';
 
   // Override create to handle composite key
-  async create(data: Partial<CostEstimate>, options?: any): Promise<CostEstimate> {
+  async create(data: Partial<CostEstimate>, options?: QueryOptions): Promise<CostEstimate> {
     const estimate_id = TimeUuid.now().toString();
     const estimateData = {
       ...data,
       estimate_id,
       estimated_at: new Date(),
+      updated_at: new Date(),
       is_deleted: false,
     };
 
-    const { query, params } = require('@/config').insert(this.tableName, estimateData as Record<string, unknown>);
+    const { query, params } = insert(this.tableName, estimateData as Record<string, unknown>);
 
     await db.execute(query, { ...options, params });
     return estimateData as CostEstimate;
   }
 
   // Override update to handle composite primary key (project_id, work_item_id, estimate_id)
-  async update(id: string, data: Partial<CostEstimate>, options?: any): Promise<CostEstimate | null> {
+  async update(
+    id: string,
+    data: Partial<CostEstimate>,
+    options?: CostEstimateMutationOptions
+  ): Promise<CostEstimate | null> {
     const { project_id, work_item_id, ...restData } = data;
     const projectId = project_id || options?.project_id;
     const workItemId = work_item_id || options?.work_item_id;
@@ -58,7 +71,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
     const whereClause = 'project_id = ? AND work_item_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
       { ...restData, updated_at: new Date() } as Record<string, unknown>,
       whereClause,
@@ -70,7 +83,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   }
 
   // Soft delete: mark as deleted instead of removing
-  async softDelete(id: string, userId: string, options?: any): Promise<boolean> {
+  async softDelete(id: string, userId: string, options?: CostEstimateMutationOptions): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
 
@@ -81,9 +94,9 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
     const whereClause = 'project_id = ? AND work_item_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
-      { is_deleted: true, deleted_at: new Date(), deleted_by: userId },
+      { is_deleted: true, deleted_at: new Date(), deleted_by: userId, updated_at: new Date() },
       whereClause,
       whereParams
     );
@@ -93,7 +106,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   }
 
   // Hard delete: permanently remove from database
-  async hardDelete(id: string, options?: any): Promise<boolean> {
+  async hardDelete(id: string, options?: CostEstimateMutationOptions): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
 
@@ -109,7 +122,7 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
   }
 
   // Restore a soft-deleted estimate
-  async restore(id: string, options?: any): Promise<boolean> {
+  async restore(id: string, options?: CostEstimateMutationOptions): Promise<boolean> {
     const projectId = options?.project_id;
     const workItemId = options?.work_item_id;
 
@@ -120,9 +133,9 @@ export class CostEstimateRepository extends BaseRepository<CostEstimate> {
     const whereClause = 'project_id = ? AND work_item_id = ? AND estimate_id = ?';
     const whereParams = [projectId, workItemId, id];
 
-    const { query, params } = require('@/config').update(
+    const { query, params } = update(
       this.tableName,
-      { is_deleted: false, deleted_at: null, deleted_by: null },
+      { is_deleted: false, deleted_at: null, deleted_by: null, updated_at: new Date() },
       whereClause,
       whereParams
     );

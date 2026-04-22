@@ -14,6 +14,7 @@ export interface CostEstimate {
   notes: string | null;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   estimated_at: string;
+  updated_at?: string;
   estimated_by: string | null;
   approved_at: string | null;
   approved_by: string | null;

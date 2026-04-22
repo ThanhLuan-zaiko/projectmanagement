@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useProjectSchedules } from '@/hooks/useProjectSchedules';
@@ -18,7 +18,7 @@ import {
   TableFilters,
   TablePagination,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function ProjectScheduleSkeleton() {
   return (
@@ -67,8 +67,11 @@ function ProjectSchedulesContent() {
     refresh: refreshSchedules,
   } = useProjectSchedules({
     projectId: urlFilters.filters.project_id || project?.project_id || '',
+    search: urlFilters.search,
     scheduleType: urlFilters.filters.schedule_type || 'all',
     status: urlFilters.filters.status || 'all',
+    sortBy: urlFilters.sortBy,
+    sortOrder: urlFilters.sortOrder,
     page: urlFilters.page,
     limit: urlFilters.limit,
     includeDeleted: isTrashTab,
@@ -97,15 +100,7 @@ function ProjectSchedulesContent() {
     handleChange,
     handleEdit,
     calculateDuration,
-    setFormData,
-  } = useProjectScheduleForm(refreshData);
-
-  // Sync project_id from context to form
-  useEffect(() => {
-    if (project?.project_id) {
-      setFormData(prev => ({ ...prev, project_id: project.project_id }));
-    }
-  }, [project?.project_id, setFormData]);
+  } = useProjectScheduleForm({ projectId: project?.project_id });
 
   const {
     showDeleteModal,
@@ -124,9 +119,15 @@ function ProjectSchedulesContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    const isCreating = !editingItem;
     const success = await handleFormSubmit(e);
     if (success) {
       setShowCreateModal(false);
+      if (isCreating && urlFilters.page !== 1) {
+        urlFilters.setPage(1);
+      } else {
+        await refreshData();
+      }
     }
   };
 
@@ -161,16 +162,13 @@ function ProjectSchedulesContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title={activeTab === 'trash' ? 'Schedule Trash' : 'Project Schedule Management'}
-          subtitle={activeTab === 'trash' ? 'View and restore deleted schedules' : 'Plan and manage schedules for your project phases, milestones, sprints, and releases'}
-          actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
-          onAction={activeTab === 'trash' ? undefined : handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title={activeTab === 'trash' ? 'Schedule Trash' : 'Project Schedule Management'}
+        subtitle={activeTab === 'trash' ? 'View and restore deleted schedules' : 'Plan and manage schedules for your project phases, milestones, sprints, and releases'}
+        actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
+        onAction={activeTab === 'trash' ? undefined : handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -246,7 +244,8 @@ function ProjectSchedulesContent() {
                   { value: 'end_date', label: 'End Date' },
                   { value: 'progress_percentage', label: 'Progress' },
                 ]}
-                onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+                onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+                onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
                 limit={urlFilters.limit}
                 onLimitChange={urlFilters.setLimit}
                 onRefresh={refreshData}
@@ -322,7 +321,7 @@ function ProjectSchedulesContent() {
         onSoftDelete={() => confirmDelete(false)}
         onHardDelete={() => confirmDelete(true)}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

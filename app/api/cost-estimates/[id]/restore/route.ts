@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { costEstimateRepository } from '@/lib/cost-estimate-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateCostEstimatePayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,29 +17,33 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateCostEstimatePayload(body, 'update');
 
-    if (!body.project_id || !body.work_item_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID and Work Item ID are required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted cost estimate fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    const workItemId = String(sanitizedBody.work_item_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
-    const estimate = await costEstimateRepository.findById(id, { params: [body.project_id, body.work_item_id] });
+    const estimate = await costEstimateRepository.findById(id, { params: [projectId, workItemId] });
 
     if (!estimate) {
-      return NextResponse.json(
-        { success: false, error: 'Cost estimate not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Cost estimate not found');
     }
 
     if (!estimate.is_deleted) {
@@ -47,8 +54,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await costEstimateRepository.restore(id, {
-      project_id: body.project_id,
-      work_item_id: body.work_item_id,
+      project_id: projectId,
+      work_item_id: workItemId,
     });
 
     return NextResponse.json({
@@ -56,10 +63,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       message: 'Cost estimate restored successfully',
     });
   } catch (error) {
-    console.error('Error restoring cost estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to restore cost estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to restore cost estimate');
   }
 }

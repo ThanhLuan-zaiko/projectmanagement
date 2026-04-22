@@ -3,15 +3,14 @@
 
 import { useState, useEffect } from 'react';
 import { WorkItem, WorkItemFormData } from '@/types/work-item';
+import { apiFetch } from '@/utils/api-client';
 
 interface UseTaskFormOptions {
   projectId?: string;
   onSuccess?: () => void;
 }
 
-const DEFAULT_PROJECT_ID = '00000000-0000-0000-0000-000000000001';
-
-const getInitialFormData = (projectId: string): WorkItemFormData => ({
+const getInitialFormData = (projectId?: string): WorkItemFormData => ({
   title: '',
   description: '',
   work_type: 'task',
@@ -21,24 +20,24 @@ const getInitialFormData = (projectId: string): WorkItemFormData => ({
   due_date: '',
   estimated_hours: '',
   tags: '',
-  project_id: projectId,
+  project_id: projectId || '',
 });
 
 export function useTaskForm(options: UseTaskFormOptions = {}) {
   const { projectId, onSuccess } = options;
-  const [formData, setFormData] = useState<WorkItemFormData>(getInitialFormData(projectId || DEFAULT_PROJECT_ID));
+  const [formData, setFormData] = useState<WorkItemFormData>(getInitialFormData(projectId));
   const [editingItem, setEditingItem] = useState<WorkItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   useEffect(() => {
-    if (projectId) {
-      setFormData(prev => ({ ...prev, project_id: projectId }));
+    if (!editingItem) {
+      setFormData(prev => ({ ...prev, project_id: projectId || '' }));
     }
-  }, [projectId]);
+  }, [projectId, editingItem]);
 
   const resetForm = () => {
-    setFormData(getInitialFormData(projectId || DEFAULT_PROJECT_ID));
+    setFormData(getInitialFormData(projectId));
     setEditingItem(null);
     setValidationErrors([]);
   };
@@ -78,7 +77,7 @@ export function useTaskForm(options: UseTaskFormOptions = {}) {
 
       const method = editingItem ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

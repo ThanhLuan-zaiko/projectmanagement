@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Project } from '@/types/project';
+import { apiFetch } from '@/utils/api-client';
 
 export function useProjectActions(onSuccess?: () => void | Promise<void>) {
   const [busyProjectId, setBusyProjectId] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export function useProjectActions(onSuccess?: () => void | Promise<void>) {
     setBusyAction('delete');
 
     try {
-      const response = await fetch(`/api/projects/${project.project_id}`, {
+      const response = await apiFetch(`/api/projects/${project.project_id}`, {
         method: 'DELETE',
       });
       const data = await response.json();
@@ -39,7 +40,7 @@ export function useProjectActions(onSuccess?: () => void | Promise<void>) {
     setBusyAction('restore');
 
     try {
-      const response = await fetch(`/api/projects/${project.project_id}/restore`, {
+      const response = await apiFetch(`/api/projects/${project.project_id}/restore`, {
         method: 'POST',
       });
       const data = await response.json();
@@ -60,7 +61,7 @@ export function useProjectActions(onSuccess?: () => void | Promise<void>) {
     setBusyAction('permanent');
 
     try {
-      const response = await fetch(`/api/projects/${project.project_id}?permanent=true`, {
+      const response = await apiFetch(`/api/projects/${project.project_id}?permanent=true`, {
         method: 'DELETE',
       });
       const data = await response.json();

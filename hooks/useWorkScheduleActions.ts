@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { WorkItemSchedule } from '@/types/work-schedule';
+import { apiFetch } from '@/utils/api-client';
 
 export function useWorkScheduleActions(onSuccess?: () => void) {
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function useWorkScheduleActions(onSuccess?: () => void) {
         ? `/api/work-schedules/${itemToDelete.work_item_id}?permanent=true`
         : `/api/work-schedules/${itemToDelete.work_item_id}`;
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -51,7 +52,7 @@ export function useWorkScheduleActions(onSuccess?: () => void) {
   const handleRestore = async (item: WorkItemSchedule) => {
     setIsRestoringItem(true);
     try {
-      const response = await fetch(`/api/work-schedules/${item.work_item_id}/restore`, {
+      const response = await apiFetch(`/api/work-schedules/${item.work_item_id}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

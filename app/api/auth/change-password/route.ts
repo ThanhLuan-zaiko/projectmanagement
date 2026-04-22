@@ -2,35 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateSession } from '@/utils/session';
 import { verifyPassword, hashPassword, validatePasswordStrength } from '@/utils/password';
 import { db } from '@/config';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
 
 export async function POST(request: NextRequest) {
   try {
+    requireCsrf(request);
     // Get session token from cookie
     const sessionToken = request.cookies.get('session_id')?.value;
 
     if (!sessionToken) {
-      return NextResponse.json(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Not authenticated');
     }
 
     // Validate session and get user ID
     const userId = await validateSession(sessionToken);
 
     if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Not authenticated');
     }
 
     // Parse request body
-    const body = await request.json();
+    const body = await parseJsonBody<{
+      currentPassword?: unknown;
+      newPassword?: unknown;
+    }>(request);
     const { currentPassword, newPassword } = body;
 
     // Validate input
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== 'string' ||
+      typeof newPassword !== 'string' ||
+      !currentPassword ||
+      !newPassword
+    ) {
       return NextResponse.json(
         { success: false, error: 'Current password and new password are required' },
         { status: 400 }
@@ -96,10 +100,6 @@ export async function POST(request: NextRequest) {
       message: 'Password changed successfully',
     });
   } catch (error) {
-    console.error('Password change API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Internal server error');
   }
 }

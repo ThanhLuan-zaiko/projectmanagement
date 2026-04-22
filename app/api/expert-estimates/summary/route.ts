@@ -4,27 +4,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { expertEstimateRepository } from '@/lib/expert-estimate-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
 
 // GET /api/expert-estimates/summary?project_id=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
 
     if (!projectId) {
-      return NextResponse.json(
-        { success: false, error: 'Project ID is required' },
-        { status: 400 }
-      );
+      return errorResponse(400, 'Project ID is required');
     }
+    await requireProjectAccess(projectId, user.user_id, 'read');
 
     // Get project statistics
     const statistics = await expertEstimateRepository.getProjectStatistics(projectId);
@@ -65,10 +62,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching expert estimate summary:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch expert estimate summary' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch expert estimate summary');
   }
 }

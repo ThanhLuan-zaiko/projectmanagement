@@ -1,11 +1,11 @@
 'use client';
 
-import { usePathname, useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useParams } from 'next/navigation';
 import { FiBarChart2, FiClipboard, FiUsers, FiDollarSign, FiCalendar, FiList } from 'react-icons/fi';
 
 export default function DashboardTabs() {
   const pathname = usePathname();
-  const router = useRouter();
   const params = useParams();
   const projectCode = params?.projectCode as string;
 
@@ -75,12 +75,15 @@ export default function DashboardTabs() {
           const Icon = tab.icon;
 
           return (
-            <button
+            <Link
               key={tab.id}
+              href={tab.href}
+              prefetch={true}
+              data-speculate="prerender"
               role="tab"
               aria-selected={isActive}
               aria-controls={`${tab.id}-panel`}
-              onClick={() => router.push(tab.href)}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                 isActive
                   ? 'border-blue-500 text-blue-400'
@@ -89,7 +92,7 @@ export default function DashboardTabs() {
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </nav>

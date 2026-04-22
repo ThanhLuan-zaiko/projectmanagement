@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { WorkItem } from '@/types/work-item';
+import { apiFetch } from '@/utils/api-client';
 
 interface PaginationInfo {
   page: number;
@@ -60,15 +61,29 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
     hasNextPage: false,
     hasPrevPage: false,
   });
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const fetchWorkItems = useCallback(async () => {
+    if (!projectId) {
+      setWorkItems([]);
+      setPagination((prev) => ({
+        ...prev,
+        page: 1,
+        total: 0,
+        totalPages: alwaysShowPagination ? 1 : 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }));
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       const params = new URLSearchParams({
-        ...(projectId && { project_id: projectId }),
+        project_id: projectId,
         page: page.toString(),
         limit: limit.toString(),
         ...(search && { search }),
@@ -79,7 +94,7 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
         sort_order: sortOrder,
       });
 
-      const response = await fetch(`/api/work-items?${params.toString()}`, {
+      const response = await apiFetch(`/api/work-items?${params.toString()}`, {
         cache: 'no-store',
         next: { revalidate: 0 },
       });
@@ -99,10 +114,9 @@ export function useWorkItems(options: UseWorkItemsOptions): UseWorkItemsResult {
     } finally {
       setLoading(false);
     }
-  }, [search, status, priority, workType, sortBy, sortOrder, page, limit, alwaysShowPagination, refreshKey]);
+  }, [projectId, search, status, priority, workType, sortBy, sortOrder, page, limit, alwaysShowPagination]);
 
   const refresh = useCallback(async () => {
-    setRefreshKey(prev => prev + 1);
     await fetchWorkItems();
   }, [fetchWorkItems]);
 

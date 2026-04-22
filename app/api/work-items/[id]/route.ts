@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workItemRepository } from '@/lib/work-item-repository';
 import { getCurrentUser } from '@/lib/auth';
+import { errorResponse, handleRouteError, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateWorkItemPayload } from '@/lib/dashboard-validation';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -16,20 +19,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const workItem = await workItemRepository.findById(id);
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('project_id');
+
+    if (!projectId) {
+      return errorResponse(400, 'Project ID is required');
+    }
+    await requireProjectAccess(projectId, user.user_id, 'read');
+
+    const workItem = await workItemRepository.findById(id, { params: [projectId] });
 
     if (!workItem) {
-      return NextResponse.json(
-        { success: false, error: 'Work item not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Work item not found');
     }
 
     return NextResponse.json({
@@ -37,11 +42,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       data: workItem,
     });
   } catch (error) {
-    console.error('Error fetching work item:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch work item' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch work item');
   }
 }
 
@@ -50,21 +51,31 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkItemPayload(body, 'update');
 
-    const workItem = await workItemRepository.findById(id);
-    if (!workItem) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Work item not found' },
-        { status: 404 }
+        {
+          success: false,
+          error: 'Please correct the highlighted task fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
       );
+    }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
+
+    const workItem = await workItemRepository.findById(id, { params: [projectId] });
+    if (!workItem) {
+      return errorResponse(404, 'Work item not found');
     }
 
     // Prepare update data
@@ -73,40 +84,18 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     // Must include project_id for composite primary key
     updateData.project_id = workItem.project_id;
 
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.work_type !== undefined) updateData.work_type = body.work_type;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.priority !== undefined) updateData.priority = body.priority;
-    
-    // Handle UUID fields: convert empty strings/null to null to avoid ScyllaDB errors
-    if (body.assigned_to !== undefined) {
-      if (body.assigned_to === null || String(body.assigned_to).trim() === '') {
-        updateData.assigned_to = null;
-      } else {
-        updateData.assigned_to = String(body.assigned_to).trim();
-      }
-    }
-    if (body.created_by !== undefined) {
-      if (body.created_by === null || String(body.created_by).trim() === '') {
-        updateData.created_by = null;
-      } else {
-        updateData.created_by = String(body.created_by).trim();
-      }
-    }
-    if (body.parent_work_item_id !== undefined) {
-      if (body.parent_work_item_id === null || String(body.parent_work_item_id).trim() === '') {
-        updateData.parent_work_item_id = null;
-      } else {
-        updateData.parent_work_item_id = String(body.parent_work_item_id).trim();
-      }
-    }
-
-    if (body.due_date !== undefined) updateData.due_date = body.due_date;
-    if (body.estimated_hours !== undefined) updateData.estimated_hours = body.estimated_hours;
-    if (body.actual_hours !== undefined) updateData.actual_hours = body.actual_hours;
-    if (body.tags !== undefined) updateData.tags = body.tags;
-    if (body.attachments !== undefined) updateData.attachments = body.attachments;
+    if (sanitizedBody.title !== undefined) updateData.title = sanitizedBody.title;
+    if (sanitizedBody.description !== undefined) updateData.description = sanitizedBody.description;
+    if (sanitizedBody.work_type !== undefined) updateData.work_type = sanitizedBody.work_type;
+    if (sanitizedBody.status !== undefined) updateData.status = sanitizedBody.status;
+    if (sanitizedBody.priority !== undefined) updateData.priority = sanitizedBody.priority;
+    if (sanitizedBody.assigned_to !== undefined) updateData.assigned_to = sanitizedBody.assigned_to;
+    if (sanitizedBody.parent_work_item_id !== undefined) updateData.parent_work_item_id = sanitizedBody.parent_work_item_id;
+    if (sanitizedBody.due_date !== undefined) updateData.due_date = sanitizedBody.due_date;
+    if (sanitizedBody.estimated_hours !== undefined) updateData.estimated_hours = sanitizedBody.estimated_hours;
+    if (sanitizedBody.actual_hours !== undefined) updateData.actual_hours = sanitizedBody.actual_hours;
+    if (sanitizedBody.tags !== undefined) updateData.tags = sanitizedBody.tags;
+    if (sanitizedBody.attachments !== undefined) updateData.attachments = sanitizedBody.attachments;
 
     const updatedWorkItem = await workItemRepository.update(id, updateData);
 
@@ -116,11 +105,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       message: 'Work item updated successfully',
     });
   } catch (error) {
-    console.error('Error updating work item:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update work item' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to update work item');
   }
 }
 
@@ -129,34 +114,42 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { id } = await context.params;
-    const workItem = await workItemRepository.findById(id);
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateWorkItemPayload(body, 'update');
+
+    if (!validation.sanitizedData) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Please correct the highlighted task fields.',
+          fieldErrors: validation.fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
+
+    const workItem = await workItemRepository.findById(id, { params: [projectId] });
 
     if (!workItem) {
-      return NextResponse.json(
-        { success: false, error: 'Work item not found' },
-        { status: 404 }
-      );
+      return errorResponse(404, 'Work item not found');
     }
 
     // Soft delete by setting status to cancelled
-    await workItemRepository.softDelete(id, workItem.project_id);
+    await workItemRepository.softDelete(id, projectId);
 
     return NextResponse.json({
       success: true,
       message: 'Work item deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting work item:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete work item' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to delete work item');
   }
 }

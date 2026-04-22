@@ -3,38 +3,50 @@
 // POST - Create a new cost estimate
 
 import { NextRequest, NextResponse } from 'next/server';
-import { costEstimateRepository } from '@/lib/cost-estimate-repository';
+import { costEstimateRepository, type CostEstimate } from '@/lib/cost-estimate-repository';
 import { getCurrentUser } from '@/lib/auth';
 import { db } from '@/config';
+import { errorResponse, handleRouteError, parseIntegerParam, parseJsonBody, requireCsrf } from '@/lib/api-route';
+import { requireProjectAccess } from '@/lib/project-access';
+import { validateCostEstimatePayload } from '@/lib/dashboard-validation';
+
+type CostEstimateListItem = CostEstimate & {
+  work_item_title?: string | null;
+};
 
 // GET /api/cost-estimates?project_id=&work_item_id=&estimate_type=&status=&page=&limit=
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
     const { searchParams } = new URL(request.url);
 
     // Filters
-    const projectId = searchParams.get('project_id') || '00000000-0000-0000-0000-000000000001';
+    const projectId = searchParams.get('project_id');
     const workItemId = searchParams.get('work_item_id') || '';
+    const search = searchParams.get('search') || '';
     const estimateType = searchParams.get('estimate_type') || 'all';
     const status = searchParams.get('status') || 'all';
+    const sortBy = searchParams.get('sort_by') || 'estimated_at';
+    const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
     const includeDeleted = searchParams.get('include_deleted') === 'true';
     const deletedOnly = searchParams.get('deleted_only') === 'true';
 
+    if (!projectId) {
+      return errorResponse(400, 'Project ID is required');
+    }
+    await requireProjectAccess(projectId, user.user_id, 'read');
+
     // Pagination
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseIntegerParam(searchParams.get('page'), 1);
+    const limit = parseIntegerParam(searchParams.get('limit'), 10);
     const offset = (page - 1) * limit;
 
     // Fetch estimates
-    let estimates: any[] = [];
+    let estimates: CostEstimateListItem[] = [];
 
     if (deletedOnly) {
       // Only fetch deleted items (trash)
@@ -60,7 +72,9 @@ export async function GET(request: NextRequest) {
 
       try {
         const workItemPromises = workItemIds.map((workItemId) =>
-          db.execute('SELECT work_item_id, title FROM work_items WHERE work_item_id = ?', { params: [workItemId] })
+          db.execute('SELECT work_item_id, title FROM work_items WHERE project_id = ? AND work_item_id = ?', {
+            params: [projectId, workItemId],
+          })
         );
         const workItemResults = await Promise.all(workItemPromises);
 
@@ -80,6 +94,48 @@ export async function GET(request: NextRequest) {
         console.error('Failed to fetch work item titles:', err);
       }
     }
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      estimates = estimates.filter((est) =>
+        [
+          est.notes,
+          est.estimate_type,
+          est.status,
+          est.currency,
+          est.work_item_title,
+        ].some((value) => String(value || '').toLowerCase().includes(searchLower))
+      );
+    }
+
+    estimates = estimates.sort((a, b) => {
+      let aValue: number | string = '';
+      let bValue: number | string = '';
+
+      switch (sortBy) {
+        case 'estimated_cost':
+          aValue = Number(a.estimated_cost || 0);
+          bValue = Number(b.estimated_cost || 0);
+          break;
+        case 'estimate_type':
+          aValue = String(a.estimate_type || '').toLowerCase();
+          bValue = String(b.estimate_type || '').toLowerCase();
+          break;
+        case 'estimated_at':
+        default:
+          aValue = new Date(a.estimated_at || 0).getTime();
+          bValue = new Date(b.estimated_at || 0).getTime();
+          break;
+      }
+
+      if (aValue === bValue) {
+        return 0;
+      }
+
+      return sortOrder === 'asc'
+        ? (aValue > bValue ? 1 : -1)
+        : (aValue < bValue ? 1 : -1);
+    });
 
     // Calculate total
     const total = estimates.length;
@@ -108,16 +164,15 @@ export async function GET(request: NextRequest) {
       filters: {
         projectId,
         workItemId,
+        search,
         estimateType,
         status,
+        sortBy,
+        sortOrder,
       },
     });
   } catch (error) {
-    console.error('Error fetching cost estimates:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch cost estimates' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to fetch cost estimates');
   }
 }
 
@@ -126,56 +181,47 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse(401, 'Unauthorized');
     }
 
-    const body = await request.json();
+    requireCsrf(request);
+    const body = await parseJsonBody(request);
+    const validation = validateCostEstimatePayload(body, 'create');
 
-    // Validate required fields
-    if (!body.project_id) {
+    if (!validation.sanitizedData) {
       return NextResponse.json(
-        { success: false, error: 'Project ID is required' },
+        {
+          success: false,
+          error: 'Please correct the highlighted cost estimate fields.',
+          fieldErrors: validation.fieldErrors,
+        },
         { status: 400 }
       );
     }
-
-    if (!body.work_item_id) {
-      return NextResponse.json(
-        { success: false, error: 'Work item ID is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!body.estimate_type) {
-      return NextResponse.json(
-        { success: false, error: 'Estimate type is required' },
-        { status: 400 }
-      );
-    }
+    const sanitizedBody = validation.sanitizedData;
+    const projectId = String(sanitizedBody.project_id);
+    await requireProjectAccess(projectId, user.user_id, 'write');
 
     // Calculate estimated_cost from hourly_rate * hours for labor type
-    let estimatedCost = body.estimated_cost;
-    if (body.estimate_type === 'labor' && body.hourly_rate && body.hours) {
-      estimatedCost = body.hourly_rate * body.hours;
-    } else if (body.estimate_type === 'material' && body.quantity && body.unit_cost) {
-      estimatedCost = body.quantity * body.unit_cost;
+    let estimatedCost = sanitizedBody.estimated_cost as number | null | undefined;
+    if (sanitizedBody.estimate_type === 'labor' && sanitizedBody.hourly_rate && sanitizedBody.hours) {
+      estimatedCost = Number(sanitizedBody.hourly_rate) * Number(sanitizedBody.hours);
+    } else if (sanitizedBody.estimate_type === 'material' && sanitizedBody.quantity && sanitizedBody.unit_cost) {
+      estimatedCost = Number(sanitizedBody.quantity) * Number(sanitizedBody.unit_cost);
     }
 
-    const estimateData = {
-      project_id: body.project_id,
-      work_item_id: body.work_item_id,
-      estimate_type: body.estimate_type,
+    const estimateData: Partial<CostEstimate> = {
+      project_id: projectId,
+      work_item_id: String(sanitizedBody.work_item_id),
+      estimate_type: sanitizedBody.estimate_type ?? 'labor',
       estimated_cost: estimatedCost || null,
-      currency: body.currency || 'USD',
-      hourly_rate: body.hourly_rate || null,
-      hours: body.hours || null,
-      quantity: body.quantity || null,
-      unit_cost: body.unit_cost || null,
-      notes: body.notes || null,
-      status: body.status || 'draft',
+      currency: sanitizedBody.currency ?? 'USD',
+      hourly_rate: sanitizedBody.hourly_rate ?? null,
+      hours: sanitizedBody.hours ?? null,
+      quantity: sanitizedBody.quantity ?? null,
+      unit_cost: sanitizedBody.unit_cost ?? null,
+      notes: sanitizedBody.notes ?? null,
+      status: sanitizedBody.status ?? 'draft',
       estimated_by: user.user_id,
     };
 
@@ -187,10 +233,6 @@ export async function POST(request: NextRequest) {
       message: 'Cost estimate created successfully',
     });
   } catch (error) {
-    console.error('Error creating cost estimate:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create cost estimate' },
-      { status: 500 }
-    );
+    return handleRouteError(error, 'Failed to create cost estimate');
   }
 }

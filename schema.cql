@@ -3,6 +3,12 @@
 -- Database: ScyllaDB | Keyspace: project_management
 -- ============================================================
 
+CREATE KEYSPACE IF NOT EXISTS project_management
+WITH REPLICATION = {
+    'class': 'SimpleStrategy',
+    'replication_factor': 1
+};
+
 -- Use the project_management keyspace
 USE project_management;
 
@@ -143,8 +149,9 @@ CREATE INDEX IF NOT EXISTS project_team_by_member_id ON project_team (member_id)
 -- EXPERTS & TEAM
 -- ============================================================
 
--- Expert profiles
+-- Expert profiles scoped to a single project
 CREATE TABLE IF NOT EXISTS experts (
+    project_id UUID,
     expert_id UUID,
     user_id UUID,
     name TEXT,
@@ -158,8 +165,8 @@ CREATE TABLE IF NOT EXISTS experts (
     is_active BOOLEAN,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    PRIMARY KEY (expert_id)
-);
+    PRIMARY KEY (project_id, expert_id)
+) WITH CLUSTERING ORDER BY (expert_id ASC);
 
 -- Index for finding experts by user and specialization
 CREATE INDEX IF NOT EXISTS experts_by_user_id ON experts (user_id);
@@ -245,6 +252,7 @@ CREATE TABLE IF NOT EXISTS expert_time_estimates (
     pessimistic_hours DECIMAL,
     notes TEXT,
     estimated_at TIMESTAMP,
+    updated_at TIMESTAMP,
     estimated_by UUID,
     is_deleted BOOLEAN,
     deleted_at TIMESTAMP,
@@ -291,6 +299,7 @@ CREATE TABLE IF NOT EXISTS cost_estimates (
     notes TEXT,
     status TEXT,                 -- 'draft', 'submitted', 'approved', 'rejected'
     estimated_at TIMESTAMP,
+    updated_at TIMESTAMP,
     estimated_by UUID,
     approved_at TIMESTAMP,
     approved_by UUID,
@@ -330,6 +339,7 @@ CREATE TABLE IF NOT EXISTS project_schedules (
     project_id UUID,
     schedule_id UUID,
     schedule_name TEXT,
+    description TEXT,
     schedule_type TEXT,          -- 'phase', 'milestone', 'sprint', 'release'
     start_date TIMESTAMP,
     end_date TIMESTAMP,

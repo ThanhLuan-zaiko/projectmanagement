@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FiLogIn, FiLoader } from 'react-icons/fi';
 import AuthLayout from '../AuthLayout';
 import AuthFormFields from '../AuthFormFields';
 import AuthAlert from '../AuthAlert';
 import { FormData, FormErrors } from '../types';
+import { apiFetch } from '@/utils/api-client';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/projects';
   
@@ -54,7 +54,7 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +76,7 @@ function LoginForm() {
       setTimeout(() => {
         window.location.href = redirect;
       }, 1000);
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

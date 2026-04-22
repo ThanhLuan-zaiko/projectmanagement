@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '@/utils/api-client';
 
 interface DashboardKPIs {
   totalTasks: number;
@@ -105,12 +106,19 @@ export function useDashboardStats(projectId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = async (forceRefresh = false) => {
+  const fetchStats = useCallback(async (forceRefresh = false) => {
+    if (!projectId) {
+      setStats(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      const cacheKey = `dashboard-stats-${projectId || 'default'}`;
+      const cacheKey = `dashboard-stats-${projectId}`;
       const cacheTime = 5000; // 5 seconds cache
 
       if (!forceRefresh) {
@@ -126,9 +134,9 @@ export function useDashboardStats(projectId?: string) {
       }
 
       const params = new URLSearchParams();
-      if (projectId) params.set('project_id', projectId);
+      params.set('project_id', projectId);
 
-      const response = await fetch(`/api/dashboard/stats?${params.toString()}`);
+      const response = await apiFetch(`/api/dashboard/stats?${params.toString()}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');
@@ -153,11 +161,11 @@ export function useDashboardStats(projectId?: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   return {
     stats,

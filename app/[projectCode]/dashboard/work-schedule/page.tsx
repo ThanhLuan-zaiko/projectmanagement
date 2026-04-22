@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrlFilters } from '@/hooks/useUrlFilters';
 import { useWorkSchedules } from '@/hooks/useWorkSchedules';
@@ -19,7 +19,7 @@ import {
   TableFilters,
   TablePagination,
 } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function WorkScheduleSkeleton() {
   return (
@@ -68,7 +68,10 @@ function WorkSchedulesContent() {
     refresh: refreshSchedules,
   } = useWorkSchedules({
     projectId: urlFilters.filters.project_id || project?.project_id || '',
+    search: urlFilters.search,
     status: urlFilters.filters.status || 'all',
+    sortBy: urlFilters.sortBy,
+    sortOrder: urlFilters.sortOrder,
     page: urlFilters.page,
     limit: urlFilters.limit,
     includeDeleted: isTrashTab,
@@ -97,15 +100,7 @@ function WorkSchedulesContent() {
     handleChange,
     handleEdit,
     calculatePlannedDuration,
-    setFormData,
-  } = useWorkScheduleForm(refreshData);
-
-  // Sync project_id from context to form
-  useEffect(() => {
-    if (project?.project_id) {
-      setFormData(prev => ({ ...prev, project_id: project.project_id }));
-    }
-  }, [project?.project_id, setFormData]);
+  } = useWorkScheduleForm({ projectId: project?.project_id });
 
   const {
     showDeleteModal,
@@ -124,14 +119,20 @@ function WorkSchedulesContent() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    const isCreating = !editingItem;
     const success = await handleFormSubmit(e);
     if (success) {
       setShowCreateModal(false);
+      if (isCreating && urlFilters.page !== 1) {
+        urlFilters.setPage(1);
+      } else {
+        await refreshData();
+      }
     }
   };
 
   // Fetch work items for dropdowns
-  const { workItems, loading: workItemsLoading } = useAllWorkItems({ projectId: project?.project_id || '' });
+  const { workItems } = useAllWorkItems({ projectId: project?.project_id || '' });
 
   // Format data for dropdowns
   const workItemOptions = workItems.map(item => ({
@@ -161,16 +162,13 @@ function WorkSchedulesContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title={activeTab === 'trash' ? 'Work Schedule Trash' : 'Work Schedule Management'}
-          subtitle={activeTab === 'trash' ? 'View and restore deleted work schedules' : 'Schedule and track work items with dates, hours, and dependencies'}
-          actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
-          onAction={activeTab === 'trash' ? undefined : handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title={activeTab === 'trash' ? 'Work Schedule Trash' : 'Work Schedule Management'}
+        subtitle={activeTab === 'trash' ? 'View and restore deleted work schedules' : 'Schedule and track work items with dates, hours, and dependencies'}
+        actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
+        onAction={activeTab === 'trash' ? undefined : handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -234,7 +232,8 @@ function WorkSchedulesContent() {
                   { value: 'planned_end_date', label: 'End Date' },
                   { value: 'completion_percentage', label: 'Completion' },
                 ]}
-                onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+                onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+                onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
                 limit={urlFilters.limit}
                 onLimitChange={urlFilters.setLimit}
                 onRefresh={refreshData}
@@ -310,7 +309,7 @@ function WorkSchedulesContent() {
         onSoftDelete={() => confirmDelete(false)}
         onHardDelete={() => confirmDelete(true)}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

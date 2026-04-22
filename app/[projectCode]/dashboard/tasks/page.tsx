@@ -10,7 +10,7 @@ import { useTaskActions } from '@/hooks/useTaskActions';
 import { FiLoader, FiClipboard } from 'react-icons/fi';
 import { WorkItem } from '@/types/work-item';
 import { TaskList, TaskCreateModal, TaskViewModal, DeleteConfirmationModal, DashboardTabs, TableFilters, TablePagination } from '@/components/dashboard';
-import { DashboardLayout, DashboardHeader } from '@/components/layout';
+import { DashboardHeader } from '@/components/layout';
 
 function TaskSkeleton() {
   return (
@@ -138,16 +138,13 @@ function TasksContent() {
   );
 
   return (
-    <DashboardLayout
-      header={
-        <DashboardHeader
-          title="Task Management"
-          subtitle="Manage and track your project tasks"
-          actionLabel="Create Task"
-          onAction={handleCreate}
-        />
-      }
-    >
+    <>
+      <DashboardHeader
+        title="Task Management"
+        subtitle="Manage and track your project tasks"
+        actionLabel="Create Task"
+        onAction={handleCreate}
+      />
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
@@ -211,7 +208,8 @@ function TasksContent() {
               { value: 'status', label: 'Status' },
               { value: 'due_date', label: 'Due Date' },
             ]}
-            onSortChange={() => urlFilters.toggleSort(urlFilters.sortBy)}
+            onSortChange={(sortBy) => urlFilters.setSort(sortBy, sortBy === urlFilters.sortBy ? urlFilters.sortOrder : 'desc')}
+            onSortOrderToggle={() => urlFilters.toggleSort(urlFilters.sortBy)}
             limit={urlFilters.limit}
             onLimitChange={urlFilters.setLimit}
             onRefresh={refreshData}
@@ -278,7 +276,7 @@ function TasksContent() {
         onSoftDelete={handleSoftDelete}
         onHardDelete={handleHardDelete}
       />
-    </DashboardLayout>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ import { db } from '@/config';
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Maximum number of requests within the window
+  failOpen?: boolean;
 }
 
 interface RateLimitRecord {
@@ -20,7 +21,6 @@ export async function checkRateLimit(
   config: RateLimitConfig
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now();
-  const windowStartMs = now - config.windowMs;
 
   try {
     // Try to get existing rate limit record
@@ -84,9 +84,10 @@ export async function checkRateLimit(
     };
   } catch (error) {
     console.error('Rate limit check failed:', error);
-    // Fail open - allow request but log error
+    const allowed = config.failOpen ?? true;
+
     return {
-      allowed: true,
+      allowed,
       remaining: config.maxRequests,
       resetAt: now + config.windowMs,
     };
@@ -118,35 +119,41 @@ export const RATE_LIMITS = {
   login: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     maxRequests: 5,
+    failOpen: false,
   },
 
   // Register attempts: 3 per hour per IP
   register: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 3,
+    failOpen: false,
   },
 
   // Password reset: 3 per hour per email
   passwordReset: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 3,
+    failOpen: false,
   },
 
   // Refresh attempts: 10 per hour per IP
   refresh: {
     windowMs: 60 * 60 * 1000, // 1 hour
     maxRequests: 10,
+    failOpen: false,
   },
 
   // General API (including /api/auth/me): 30 per minute per IP
   api: {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 30,
+    failOpen: true,
   },
 
   // Page requests (F5 protection): 60 per minute per IP
   page: {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 60,
+    failOpen: true,
   },
 } as const;
