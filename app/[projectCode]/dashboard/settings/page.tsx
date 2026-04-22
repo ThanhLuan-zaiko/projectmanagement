@@ -221,7 +221,7 @@ export default function ProjectSettingsPage() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)]">
           <form
             onSubmit={handleSaveProject}
-            className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(2,6,23,0.92))] p-6 shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl sm:p-8"
+            className="theme-panel rounded-[30px] border border-white/10 p-6 backdrop-blur-xl sm:p-8"
           >
             <div className="mb-8 grid gap-4 rounded-[24px] border border-cyan-400/12 bg-cyan-400/[0.03] p-4 sm:grid-cols-3">
               <div>

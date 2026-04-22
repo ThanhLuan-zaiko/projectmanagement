@@ -82,7 +82,7 @@ export default function Modal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-opacity duration-300"
+      className="theme-modal-overlay fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -93,13 +93,13 @@ export default function Modal({
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-75" />
 
         {/* Modal Content */}
-        <div className={`relative bg-slate-800 border border-slate-700 ${sizeClasses[size]} w-full mx-auto rounded-2xl shadow-2xl overflow-hidden`}>
+        <div className={`theme-modal-surface relative border border-slate-700 ${sizeClasses[size]} w-full mx-auto rounded-2xl shadow-2xl overflow-hidden`}>
 
           {/* Top Gradient Bar */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
 
           {/* Header */}
-          <div className="relative px-6 py-5 border-b border-slate-700 bg-gradient-to-r from-slate-800 via-slate-750 to-slate-800">
+          <div className="theme-modal-header relative px-6 py-5 border-b border-slate-700">
             <div className="relative flex items-start justify-between">
               <div className="flex-1">
                 <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 flex items-center gap-3">
@@ -206,7 +206,7 @@ export default function Modal({
         </div>
 
         {/* Keyboard Hint */}
-        <div className="text-center mt-4 text-xs text-slate-500 hidden sm:block">
+        <div className="theme-modal-hint mt-4 hidden text-center text-xs sm:block">
           Press <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-400 mx-1">Esc</kbd> to close
         </div>
       </div>

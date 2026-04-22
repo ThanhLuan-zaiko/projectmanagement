@@ -24,7 +24,7 @@ export default function ProjectsPageHeader({
   highlights = [],
 }: ProjectsPageHeaderProps) {
   return (
-    <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(8,47,73,0.88),rgba(2,6,23,0.96)_52%,rgba(15,23,42,0.92))] p-6 shadow-[0_30px_80px_rgba(2,6,23,0.42)] backdrop-blur-xl sm:p-8">
+    <section className="theme-hero-panel relative overflow-hidden rounded-[32px] border border-white/10 p-6 backdrop-blur-xl sm:p-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.22),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.12),transparent_24%)]" />
       <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-start gap-4">

@@ -68,10 +68,10 @@ export default function ProjectCharts({ summary }: ProjectChartsProps) {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  background: '#020617',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--theme-chart-tooltip-bg)',
+                  border: '1px solid var(--theme-chart-tooltip-border)',
                   borderRadius: 16,
-                  color: '#e2e8f0',
+                  color: 'var(--theme-chart-tooltip-text)',
                 }}
               />
               <Legend />
@@ -87,17 +87,17 @@ export default function ProjectCharts({ summary }: ProjectChartsProps) {
         <ChartWrapper className="min-w-0">
           <ResponsiveContainer width="100%" height={320} minWidth={0}>
             <BarChart data={summary.budget_distribution} margin={{ top: 8, right: 20, left: 0, bottom: 32 }}>
-              <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: '#cbd5e1', fontSize: 12 }} angle={-16} textAnchor="end" height={56} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+              <CartesianGrid stroke="var(--theme-chart-grid)" vertical={false} />
+              <XAxis dataKey="name" tick={{ fill: 'var(--theme-chart-tick-strong)', fontSize: 12 }} angle={-16} textAnchor="end" height={56} />
+              <YAxis tick={{ fill: 'var(--theme-chart-tick)', fontSize: 12 }} />
                 <Tooltip
                   formatter={(value) => new Intl.NumberFormat('en-US').format(Number(value || 0))}
                   contentStyle={{
-                    background: '#020617',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 16,
-                  color: '#e2e8f0',
-                }}
+                    background: 'var(--theme-chart-tooltip-bg)',
+                    border: '1px solid var(--theme-chart-tooltip-border)',
+                    borderRadius: 16,
+                    color: 'var(--theme-chart-tooltip-text)',
+                  }}
               />
               <Bar dataKey="budget" radius={[10, 10, 0, 0]} fill="#38bdf8" />
             </BarChart>
@@ -123,15 +123,15 @@ export default function ProjectCharts({ summary }: ProjectChartsProps) {
                     <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(148,163,184,0.12)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <CartesianGrid stroke="var(--theme-chart-grid)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: 'var(--theme-chart-tick-strong)', fontSize: 12 }} />
+                <YAxis tick={{ fill: 'var(--theme-chart-tick)', fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#020617',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--theme-chart-tooltip-bg)',
+                    border: '1px solid var(--theme-chart-tooltip-border)',
                     borderRadius: 16,
-                    color: '#e2e8f0',
+                    color: 'var(--theme-chart-tooltip-text)',
                   }}
                 />
                 <Area type="monotone" dataKey="created" stroke="#38bdf8" fill="url(#createdArea)" strokeWidth={2} />

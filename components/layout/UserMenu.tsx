@@ -22,6 +22,8 @@ export default function UserMenu({ user }: UserMenuProps) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [mobileDropdownTop, setMobileDropdownTop] = useState<number | null>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -36,6 +38,31 @@ export default function UserMenu({ user }: UserMenuProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current || window.innerWidth >= 640) {
+        setMobileDropdownTop(null);
+        return;
+      }
+
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMobileDropdownTop(rect.bottom + 10);
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
 
   const handleLogout = async () => {
     try {
@@ -67,6 +94,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     <>
       <div className="relative z-[999]" ref={menuRef}>
         <button
+          ref={triggerRef}
           onClick={() => setIsOpen(!isOpen)}
           className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-700/30 transition-all duration-200 group"
         >
@@ -107,7 +135,10 @@ export default function UserMenu({ user }: UserMenuProps) {
 
         {/* Dropdown Menu */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-64 bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-[999]">
+          <div
+            className="fixed left-4 right-4 z-[999] overflow-hidden rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl shadow-black/50 sm:absolute sm:left-auto sm:right-0 sm:mt-2 sm:w-64"
+            style={mobileDropdownTop ? { top: mobileDropdownTop } : undefined}
+          >
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-slate-700/50">
               <div className="flex items-center gap-3">

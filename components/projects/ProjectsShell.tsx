@@ -14,11 +14,11 @@ export default function ProjectsShell({ children }: ProjectsShellProps) {
   const { user } = useAuth();
 
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),transparent_28%),radial-gradient(circle_at_top_right,_rgba(34,197,94,0.18),transparent_24%),linear-gradient(135deg,_#020617_0%,_#0f172a_42%,_#082f49_100%)]">
-      <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:42px_42px] pointer-events-none" />
+    <div className="theme-projects-shell relative min-h-screen">
+      <div className="theme-projects-grid pointer-events-none absolute inset-0" />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl min-w-0 flex-col px-4 py-6 sm:px-6 lg:px-8">
-        <header className="relative z-20 mb-6 overflow-visible rounded-[28px] border border-white/10 bg-slate-950/60 p-5 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
+        <header className="theme-projects-header relative z-20 mb-6 overflow-visible rounded-[28px] border border-white/10 p-5 backdrop-blur-xl">
           <div className="flex flex-col gap-5 overflow-visible lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-sky-600 text-slate-950 shadow-lg shadow-cyan-500/25">
@@ -41,7 +41,7 @@ export default function ProjectsShell({ children }: ProjectsShellProps) {
                 <span>Create or join</span>
                 <FiArrowUpRight className="h-4 w-4" />
               </Link>
-              <div className="self-start sm:self-auto">
+              <div className="self-end sm:self-auto">
                 <UserMenu user={user} />
               </div>
             </div>
@@ -52,7 +52,7 @@ export default function ProjectsShell({ children }: ProjectsShellProps) {
           </div>
         </header>
 
-        <main className="relative min-w-0 flex-1">{children}</main>
+        <main className="relative min-w-0 flex-1 pb-20 sm:pb-24">{children}</main>
       </div>
     </div>
   );

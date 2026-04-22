@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AuthProvider from "@/components/AuthProvider";
 import SpeculationRules from "@/components/SpeculationRules";
+import ThemeProvider from "@/components/theme/ThemeProvider";
+import ThemeToggle from "@/components/theme/ThemeToggle";
+import { THEME_INIT_SCRIPT } from "@/components/theme/theme-config";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,13 +30,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <SpeculationRules />
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 transition-colors duration-300">
+        <ThemeProvider>
+          <SpeculationRules />
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+          <ThemeToggle />
+        </ThemeProvider>
       </body>
     </html>
   );

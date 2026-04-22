@@ -45,7 +45,7 @@ export default function ProjectForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(2,6,23,0.9))] p-6 backdrop-blur-xl shadow-[0_30px_80px_rgba(2,6,23,0.45)] sm:p-8"
+      className="theme-panel rounded-[32px] border border-white/10 p-6 backdrop-blur-xl sm:p-8"
     >
       <div className="mb-8 grid gap-4 rounded-[24px] border border-cyan-400/12 bg-cyan-400/[0.03] p-4 sm:grid-cols-3">
         <div>

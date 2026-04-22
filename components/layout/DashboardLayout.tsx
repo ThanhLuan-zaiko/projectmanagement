@@ -124,7 +124,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
         )}
 
         {/* Page Content */}
-        <main className="relative z-0 flex-1 min-w-0">
+        <main className="relative z-0 flex-1 min-w-0 pb-20 sm:pb-24">
           {children}
         </main>
       </div>
