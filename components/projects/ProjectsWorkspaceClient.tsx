@@ -20,6 +20,7 @@ export default function ProjectsWorkspaceClient() {
     defaultLimit: 12,
     defaultSortBy: 'updated_at',
     defaultSortOrder: 'desc',
+    searchDebounceMs: 250,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [trashModalProject, setTrashModalProject] = useState<Project | null>(null);
@@ -52,7 +53,16 @@ export default function ProjectsWorkspaceClient() {
     setIsRefreshing(false);
   };
 
-  const { busyProjectId, busyAction, moveToTrash } = useProjectActions(refreshAll);
+  const workspaceBusy =
+    isRefreshing ||
+    urlFilters.isNavigating ||
+    ownedProjectsState.isRefreshing ||
+    memberProjectsState.isRefreshing;
+
+  const { busyProjectId, busyAction, moveToTrash } = useProjectActions({
+    onSuccess: refreshAll,
+    onOptimisticRemove: (project) => ownedProjectsState.optimisticallyRemove(project.project_id),
+  });
 
   const handleMoveToTrash = async (project: Project) => {
     setTrashModalProject(project);
@@ -60,8 +70,10 @@ export default function ProjectsWorkspaceClient() {
 
   const handleConfirmTrash = async () => {
     if (!trashModalProject) return;
-    await moveToTrash(trashModalProject);
-    setTrashModalProject(null);
+    const success = await moveToTrash(trashModalProject);
+    if (success) {
+      setTrashModalProject(null);
+    }
   };
 
   return (
@@ -71,6 +83,7 @@ export default function ProjectsWorkspaceClient() {
         title="Run active project operations without the single-file bottleneck."
         description="Filter portfolio items, open dashboards, edit project metadata and move stale work into trash with a recoverable delete flow."
         icon={FiLayers}
+        isRefreshing={workspaceBusy}
         highlights={[
           { label: 'Owned', value: ownedProjectsState.pagination.total },
           { label: 'Collaborating', value: memberProjectsState.pagination.total },
@@ -92,7 +105,7 @@ export default function ProjectsWorkspaceClient() {
         status={urlFilters.filters.status || 'all'}
         sortBy={urlFilters.sortBy}
         sortOrder={urlFilters.sortOrder}
-        isRefreshing={isRefreshing}
+        isRefreshing={workspaceBusy}
         onSearchChange={(value) => {
           setMemberPage(1);
           urlFilters.setSearch(value);
@@ -196,6 +209,7 @@ export default function ProjectsWorkspaceClient() {
         busyProjectId={busyProjectId}
         busyAction={busyAction}
         loading={ownedProjectsState.loading}
+        isRefreshing={ownedProjectsState.isRefreshing || workspaceBusy}
         pagination={ownedProjectsState.pagination}
         onPageChange={(page) => urlFilters.setPage(page)}
         onLimitChange={(limit) => urlFilters.setLimit(limit)}
@@ -212,6 +226,7 @@ export default function ProjectsWorkspaceClient() {
         emptyTitle="No joined projects"
         emptyDescription="Use a project code from the Create & Join tab to attach yourself to an existing workspace."
         loading={memberProjectsState.loading}
+        isRefreshing={memberProjectsState.isRefreshing || workspaceBusy}
         pagination={memberProjectsState.pagination}
         onPageChange={setMemberPage}
         onLimitChange={(nextLimit) => {

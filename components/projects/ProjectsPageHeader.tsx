@@ -1,3 +1,4 @@
+import { FiLoader } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 
 interface ProjectsPageHeaderProps {
@@ -6,6 +7,7 @@ interface ProjectsPageHeaderProps {
   description: string;
   icon: IconType;
   action?: React.ReactNode;
+  isRefreshing?: boolean;
   highlights?: Array<{
     label: string;
     value: string | number;
@@ -18,6 +20,7 @@ export default function ProjectsPageHeader({
   description,
   icon: Icon,
   action,
+  isRefreshing = false,
   highlights = [],
 }: ProjectsPageHeaderProps) {
   return (
@@ -49,7 +52,15 @@ export default function ProjectsPageHeader({
           </div>
         </div>
 
-        {action && <div className="relative shrink-0 self-start">{action}</div>}
+        <div className="relative flex shrink-0 flex-col items-start gap-3 self-start">
+          {isRefreshing && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-cyan-100">
+              <FiLoader className="h-3.5 w-3.5 animate-spin" />
+              <span>Syncing</span>
+            </div>
+          )}
+          {action}
+        </div>
       </div>
     </section>
   );

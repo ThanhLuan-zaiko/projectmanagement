@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FiMenu } from 'react-icons/fi';
+import { FiClipboard, FiMenu } from 'react-icons/fi';
 import DashboardSidebar from './DashboardSidebar';
 import UserMenu from './UserMenu';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,13 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, header }: DashboardLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.localStorage.getItem('sidebar-collapsed') === 'true';
+  });
   const { user } = useAuth();
 
   // Close mobile menu on resize to desktop
@@ -39,12 +46,16 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
     };
   }, [mobileMenuOpen]);
 
+  useEffect(() => {
+    window.localStorage.setItem('sidebar-collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -52,7 +63,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
       {/* Mobile Sidebar Drawer */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 ease-in-out lg:hidden
+          fixed inset-y-0 left-0 z-[110] w-full sm:max-w-80 transform transition-transform duration-300 ease-out lg:hidden
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -63,31 +74,45 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed left-0 top-0 h-screen z-30">
-        <DashboardSidebar variant="desktop" />
+      <div
+        className={`fixed left-0 top-0 z-30 hidden h-screen transition-[width] duration-300 ease-out lg:block ${
+          sidebarCollapsed ? 'w-24' : 'w-72'
+        }`}
+      >
+        <DashboardSidebar
+          variant="desktop"
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((currentValue) => !currentValue)}
+        />
       </div>
 
       {/* Main Content */}
-      <div className="min-h-screen flex flex-col lg:pl-72">
+      <div
+        className={`min-h-screen flex flex-col transition-[padding] duration-300 ease-out ${
+          sidebarCollapsed ? 'lg:pl-24' : 'lg:pl-72'
+        }`}
+      >
         {/* Mobile Header */}
-        <header className="lg:hidden sticky top-0 z-20 bg-slate-900/90 backdrop-blur-xl border-b border-slate-700/50">
+        <header className="sticky top-0 z-[90] border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-md lg:hidden">
           <div className="flex items-center justify-between px-4 py-4">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+              className="shrink-0 rounded-lg p-2 transition-colors hover:bg-slate-700/50"
             >
               <FiMenu className="w-6 h-6 text-white" />
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <FiMenu className="w-4 h-4 text-white" />
+            <div className="mx-3 flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 shadow-lg shadow-blue-500/30">
+                <FiClipboard className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-lg font-bold text-white">Project Management</h1>
+              <h1 className="truncate text-lg font-bold text-white">Project Management</h1>
             </div>
 
             {/* Mobile User Menu */}
-            <UserMenu user={user} />
+            <div className="relative z-10 shrink-0">
+              <UserMenu user={user} />
+            </div>
           </div>
         </header>
 
@@ -99,7 +124,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
         )}
 
         {/* Page Content */}
-        <main className="flex-1 min-w-0">
+        <main className="relative z-0 flex-1 min-w-0">
           {children}
         </main>
       </div>

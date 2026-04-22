@@ -3,7 +3,7 @@
 'use client';
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useTransition } from 'react';
 
 export interface UseUrlFiltersOptions {
   defaultPage?: number;
@@ -11,6 +11,7 @@ export interface UseUrlFiltersOptions {
   defaultSortBy?: string;
   defaultSortOrder?: 'asc' | 'desc';
   alwaysShowPagination?: boolean;
+  searchDebounceMs?: number;
 }
 
 export interface UrlFiltersState {
@@ -32,6 +33,7 @@ export interface UrlFiltersActions {
   setFilter: (key: string, value: string) => void;
   clearFilters: () => void;
   refresh: () => void;
+  isNavigating: boolean;
 }
 
 export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersState & UrlFiltersActions {
@@ -40,12 +42,14 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
     defaultLimit = 10,
     defaultSortBy = 'created_at',
     defaultSortOrder = 'desc',
-    alwaysShowPagination = false,
+    searchDebounceMs = 0,
   } = options;
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isNavigating, startTransition] = useTransition();
+  const searchDebounceRef = useRef<number | null>(null);
 
   // Get current values from URL
   const state = useMemo<UrlFiltersState>(() => {
@@ -68,8 +72,25 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
   }, [searchParams, defaultPage, defaultLimit, defaultSortBy, defaultSortOrder]);
 
   // Update URL with new params
+  const navigate = useCallback(
+    (href: string, method: 'push' | 'replace') => {
+      startTransition(() => {
+        if (method === 'replace') {
+          router.replace(href, { scroll: false });
+          return;
+        }
+
+        router.push(href, { scroll: false });
+      });
+    },
+    [router]
+  );
+
   const updateParams = useCallback(
-    (updates: Record<string, string | number | null>) => {
+    (
+      updates: Record<string, string | number | null>,
+      method: 'push' | 'replace' = 'replace'
+    ) => {
       const params = new URLSearchParams(searchParams.toString());
 
       Object.entries(updates).forEach(([key, value]) => {
@@ -85,13 +106,14 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
         params.set('page', '1');
       }
 
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      const nextQuery = params.toString();
+      navigate(nextQuery ? `${pathname}?${nextQuery}` : pathname, method);
     },
-    [searchParams, pathname, router, defaultLimit]
+    [searchParams, pathname, navigate, defaultLimit]
   );
 
   const setPage = useCallback(
-    (page: number) => updateParams({ page }),
+    (page: number) => updateParams({ page }, 'push'),
     [updateParams]
   );
 
@@ -101,8 +123,21 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
   );
 
   const setSearch = useCallback(
-    (search: string) => updateParams({ search }),
-    [updateParams]
+    (search: string) => {
+      if (searchDebounceRef.current !== null) {
+        window.clearTimeout(searchDebounceRef.current);
+      }
+
+      if (searchDebounceMs <= 0) {
+        updateParams({ search }, 'replace');
+        return;
+      }
+
+      searchDebounceRef.current = window.setTimeout(() => {
+        updateParams({ search }, 'replace');
+      }, searchDebounceMs);
+    },
+    [searchDebounceMs, updateParams]
   );
 
   const setSort = useCallback(
@@ -111,7 +146,7 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
       if (sortOrder) {
         updates.sort_order = sortOrder;
       }
-      updateParams(updates);
+      updateParams(updates, 'replace');
     },
     [updateParams]
   );
@@ -123,10 +158,10 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
 
       if (currentSortBy === sortBy) {
         // Toggle order
-        updateParams({ sort_order: currentSortOrder === 'asc' ? 'desc' : 'asc' });
+        updateParams({ sort_order: currentSortOrder === 'asc' ? 'desc' : 'asc' }, 'replace');
       } else {
         // New sort field, default to desc
-        updateParams({ sort_by: sortBy, sort_order: 'desc' });
+        updateParams({ sort_by: sortBy, sort_order: 'desc' }, 'replace');
       }
     },
     [state.sortBy, state.sortOrder, updateParams]
@@ -134,19 +169,29 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
 
   const setFilter = useCallback(
     (key: string, value: string) => {
-      updateParams({ [key]: value || null });
+      updateParams({ [key]: value || null }, 'replace');
     },
     [updateParams]
   );
 
   const clearFilters = useCallback(() => {
     // Keep only page=1
-    router.push(pathname, { scroll: false });
-  }, [router, pathname]);
+    navigate(pathname, 'replace');
+  }, [navigate, pathname]);
 
   const refresh = useCallback(() => {
-    router.refresh();
+    startTransition(() => {
+      router.refresh();
+    });
   }, [router]);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current !== null) {
+        window.clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
 
   return {
     ...state,
@@ -158,5 +203,6 @@ export function useUrlFilters(options: UseUrlFiltersOptions = {}): UrlFiltersSta
     setFilter,
     clearFilters,
     refresh,
+    isNavigating,
   };
 }

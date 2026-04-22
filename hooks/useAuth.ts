@@ -20,7 +20,7 @@ interface User {
 let pendingRequest: Promise<User | null> | null = null;
 let cachedUser: User | null = null;
 let cacheTime: number = 0;
-const CACHE_DURATION = 5000; // 5 seconds cache
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 export function clearAuthCache() {
   pendingRequest = null;
@@ -67,8 +67,8 @@ async function fetchUser(): Promise<User | null> {
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => cachedUser);
+  const [loading, setLoading] = useState(() => !cachedUser);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
 
@@ -77,24 +77,40 @@ export function useAuth() {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
 
-    async function getUser() {
+    const hasCachedUser = cachedUser !== null;
+    const isCacheFresh = hasCachedUser && Date.now() - cacheTime < CACHE_DURATION;
+
+    async function getUser(background = false) {
       try {
+        if (!background) {
+          setLoading(true);
+        }
+
         const userData = await fetchUser();
         setUser(userData);
+        setError(null);
       } catch {
         setError('Failed to fetch user info');
         setUser(null);
       } finally {
-        setLoading(false);
+        if (!background) {
+          setLoading(false);
+        }
       }
     }
 
-    // Use requestIdleCallback or setTimeout to not block rendering
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => getUser());
-    } else {
-      setTimeout(() => getUser(), 0);
+    if (hasCachedUser) {
+      setUser(cachedUser);
+      setLoading(false);
+
+      if (!isCacheFresh) {
+        void getUser(true);
+      }
+
+      return;
     }
+
+    void getUser();
   }, []);
 
   return { user, loading, error };

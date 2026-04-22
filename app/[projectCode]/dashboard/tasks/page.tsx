@@ -9,8 +9,23 @@ import { useTaskForm } from '@/hooks/useTaskForm';
 import { useTaskActions } from '@/hooks/useTaskActions';
 import { FiLoader, FiClipboard } from 'react-icons/fi';
 import { WorkItem } from '@/types/work-item';
-import { TaskList, TaskCreateModal, TaskViewModal, DeleteConfirmationModal, DashboardTabs, TableFilters, TablePagination } from '@/components/dashboard';
+import {
+  TaskList,
+  TaskCreateModal,
+  TaskViewModal,
+  DeleteConfirmationModal,
+  DashboardTabs,
+  TableFilters,
+  TablePagination,
+  DashboardExportButton,
+} from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
+import {
+  buildDashboardCsvFilename,
+  exportDashboardCsv,
+  fetchAllPaginatedExportRows,
+  taskCsvColumns,
+} from '@/components/dashboard/dashboardCsv';
 
 function TaskSkeleton() {
   return (
@@ -70,6 +85,38 @@ function TasksContent() {
   // Handlers
   const handleCreate = () => {
     setShowCreateModal(true);
+  };
+
+  const handleExport = async () => {
+    if (!project?.project_id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      project_id: project.project_id,
+      sort_by: urlFilters.sortBy,
+      sort_order: urlFilters.sortOrder,
+    });
+
+    if (urlFilters.search) params.set('search', urlFilters.search);
+    if (urlFilters.filters.status && urlFilters.filters.status !== 'all') {
+      params.set('status', urlFilters.filters.status);
+    }
+    if (urlFilters.filters.priority && urlFilters.filters.priority !== 'all') {
+      params.set('priority', urlFilters.filters.priority);
+    }
+    if (urlFilters.filters.work_type && urlFilters.filters.work_type !== 'all') {
+      params.set('work_type', urlFilters.filters.work_type);
+    }
+
+    const rows = await fetchAllPaginatedExportRows<WorkItem>('/api/work-items', params);
+
+    exportDashboardCsv(
+      buildDashboardCsvFilename(project.project_code, 'dashboard-tasks'),
+      taskCsvColumns,
+      rows,
+      'Task Management'
+    );
   };
 
   const refreshData = async () => {
@@ -144,7 +191,12 @@ function TasksContent() {
         subtitle="Manage and track your project tasks"
         actionLabel="Create Task"
         onAction={handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={itemsLoading || !project?.project_id}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />

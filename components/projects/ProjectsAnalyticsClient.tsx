@@ -7,7 +7,7 @@ import ProjectsPageHeader from './ProjectsPageHeader';
 import ProjectStatGrid from './ProjectStatGrid';
 
 export default function ProjectsAnalyticsClient() {
-  const { summary, loading, error } = useProjectSummary();
+  const { summary, loading, isRefreshing, error } = useProjectSummary();
 
   if (loading) {
     return (
@@ -37,6 +37,7 @@ export default function ProjectsAnalyticsClient() {
         title="Translate the portfolio into signals you can act on."
         description="Focus this screen on charts and topline metrics so the management routes stay operational instead of analytical."
         icon={FiBarChart2}
+        isRefreshing={isRefreshing}
         highlights={[
           { label: 'Statuses', value: `${summary.status_distribution.length} tracked` },
           { label: 'Completed', value: summary.kpis.completed_projects },

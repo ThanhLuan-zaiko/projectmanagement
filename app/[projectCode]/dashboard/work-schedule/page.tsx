@@ -18,8 +18,15 @@ import {
   DashboardTabs,
   TableFilters,
   TablePagination,
+  DashboardExportButton,
 } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
+import {
+  buildDashboardCsvFilename,
+  exportDashboardCsv,
+  fetchAllPaginatedExportRows,
+  workScheduleCsvColumns,
+} from '@/components/dashboard/dashboardCsv';
 
 function WorkScheduleSkeleton() {
   return (
@@ -82,6 +89,36 @@ function WorkSchedulesContent() {
   // Handlers
   const handleCreate = () => {
     setShowCreateModal(true);
+  };
+
+  const handleExport = async () => {
+    if (!project?.project_id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      project_id: project.project_id,
+      sort_by: urlFilters.sortBy,
+      sort_order: urlFilters.sortOrder,
+      ...(activeTab === 'trash' ? { include_deleted: 'true', deleted_only: 'true' } : {}),
+    });
+
+    if (urlFilters.search) params.set('search', urlFilters.search);
+    if (urlFilters.filters.status && urlFilters.filters.status !== 'all') {
+      params.set('status', urlFilters.filters.status);
+    }
+
+    const rows = await fetchAllPaginatedExportRows<WorkItemSchedule>('/api/work-schedules', params);
+
+    exportDashboardCsv(
+      buildDashboardCsvFilename(
+        project.project_code,
+        activeTab === 'trash' ? 'dashboard-work-schedules-trash' : 'dashboard-work-schedules'
+      ),
+      workScheduleCsvColumns,
+      rows,
+      activeTab === 'trash' ? 'Work Schedule Trash' : 'Work Schedule Management'
+    );
   };
 
   const refreshData = async () => {
@@ -168,7 +205,12 @@ function WorkSchedulesContent() {
         subtitle={activeTab === 'trash' ? 'View and restore deleted work schedules' : 'Schedule and track work items with dates, hours, and dependencies'}
         actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
         onAction={activeTab === 'trash' ? undefined : handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={schedulesLoading || !project?.project_id}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />

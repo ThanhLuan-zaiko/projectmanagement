@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ProjectSummaryResponse } from '@/types/project';
 import { apiFetch } from '@/utils/api-client';
 
@@ -16,26 +16,52 @@ let summaryCache: {
   pending: null,
 };
 
+export function invalidateProjectSummaryCache() {
+  summaryCache = {
+    data: null,
+    timestamp: 0,
+    pending: null,
+  };
+}
+
 export function useProjectSummary() {
-  const [summary, setSummary] = useState<ProjectSummaryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<ProjectSummaryResponse | null>(summaryCache.data);
+  const [loading, setLoading] = useState(() => !summaryCache.data);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const summaryRef = useRef<ProjectSummaryResponse | null>(summaryCache.data);
+
+  useEffect(() => {
+    summaryRef.current = summary;
+  }, [summary]);
 
   const fetchSummary = useCallback(async (force = false) => {
+    const hasRenderableData = Boolean(summaryRef.current || summaryCache.data);
+
     try {
-      setLoading(true);
       setError(null);
 
-      if (!force && summaryCache.data && Date.now() - summaryCache.timestamp < SUMMARY_CACHE_TTL) {
+      if (!force && summaryCache.data && Date.now() - summaryCache.timestamp < SUMMARY_CACHE_TTL && !summaryCache.pending) {
         setSummary(summaryCache.data);
+        setLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
+      if (!force && summaryCache.data) {
+        setSummary(summaryCache.data);
+      }
+
       if (!force && summaryCache.pending) {
+        setLoading(!hasRenderableData);
+        setIsRefreshing(hasRenderableData);
         const cachedSummary = await summaryCache.pending;
         setSummary(cachedSummary);
         return;
       }
+
+      setLoading(!hasRenderableData);
+      setIsRefreshing(hasRenderableData);
 
       summaryCache.pending = (async () => {
         const response = await apiFetch('/api/projects/summary', {
@@ -61,19 +87,24 @@ export function useProjectSummary() {
     } catch (err) {
       summaryCache.pending = null;
       setError(err instanceof Error ? err.message : 'Unknown error');
-      setSummary(null);
+
+      if (!hasRenderableData) {
+        setSummary(null);
+      }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchSummary();
+    void fetchSummary();
   }, [fetchSummary]);
 
   return {
     summary,
     loading,
+    isRefreshing,
     error,
     refresh: () => fetchSummary(true),
   };

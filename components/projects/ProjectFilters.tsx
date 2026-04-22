@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { FiFilter, FiRefreshCw, FiSearch } from 'react-icons/fi';
 
 interface ProjectFiltersProps {
@@ -25,14 +28,24 @@ export default function ProjectFilters({
   onSortOrderChange,
   onRefresh,
 }: ProjectFiltersProps) {
+  const [searchDraft, setSearchDraft] = useState(search);
+
+  useEffect(() => {
+    setSearchDraft(search);
+  }, [search]);
+
   return (
     <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 backdrop-blur-xl shadow-xl shadow-slate-950/30">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,0.8fr))]">
         <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
           <FiSearch className="h-4 w-4 text-slate-400" />
           <input
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
+            value={searchDraft}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setSearchDraft(nextValue);
+              onSearchChange(nextValue);
+            }}
             placeholder="Search by project name, code or description"
             className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
           />

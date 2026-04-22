@@ -1,11 +1,29 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { useProject } from '@/app/[projectCode]/layout';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  FiCheck,
+  FiCopy,
+  FiDollarSign,
+  FiFolder,
+  FiSave,
+  FiSettings,
+  FiShield,
+  FiTrash2,
+  FiUsers,
+} from 'react-icons/fi';
+import { DashboardExportButton, DashboardTabs } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
-import { FiSave, FiUsers, FiSettings, FiTrash2 } from 'react-icons/fi';
+import CustomSelect from '@/components/ui/CustomSelect';
+import { useProject } from '@/app/[projectCode]/layout';
+import { useAuth } from '@/hooks/useAuth';
+import { getStatusLabel, getStatusTone } from '@/components/projects/project-utils';
 import { apiFetch } from '@/utils/api-client';
+import type { Project } from '@/types/project';
+import {
+  buildDashboardCsvFilename,
+  exportDashboardSettingsCsv,
+} from '@/components/dashboard/dashboardCsv';
 
 interface TeamMember {
   member_id: string;
@@ -16,25 +34,50 @@ interface TeamMember {
   email?: string;
 }
 
+const statusOptions = [
+  { value: 'planning', label: 'Planning' },
+  { value: 'active', label: 'Active' },
+  { value: 'on_hold', label: 'On Hold' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+] as const;
+
+const currencyOptions = [
+  { value: 'USD', label: 'USD' },
+  { value: 'EUR', label: 'EUR' },
+  { value: 'GBP', label: 'GBP' },
+  { value: 'VND', label: 'VND' },
+  { value: 'THB', label: 'THB' },
+] as const;
+
+const roleOptions = [
+  { value: 'owner', label: 'Owner' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'member', label: 'Member' },
+  { value: 'viewer', label: 'Viewer' },
+] as const;
+
 export default function ProjectSettingsPage() {
   const { user } = useAuth();
   const { project } = useProject();
   const [projectName, setProjectName] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('planning');
+  const [status, setStatus] = useState<Project['status']>('planning');
   const [budget, setBudget] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoadingTeam, setIsLoadingTeam] = useState(true);
+  const [copied, setCopied] = useState(false);
 
-  // Initialize form with project data
   const fetchTeamMembers = useCallback(async () => {
     if (!project) return;
+
     try {
       const response = await apiFetch(`/api/projects/${project.project_id}/team`);
       const data = await response.json();
+
       if (data.success) {
         setTeamMembers(data.data);
       }
@@ -46,18 +89,20 @@ export default function ProjectSettingsPage() {
   }, [project]);
 
   useEffect(() => {
-    if (project) {
-      setProjectName(project.project_name);
-      setDescription(project.description);
-      setStatus(project.status);
-      setBudget(project.budget?.toString() || '');
-      setCurrency(project.currency);
-      void fetchTeamMembers();
+    if (!project) {
+      return;
     }
+
+    setProjectName(project.project_name);
+    setDescription(project.description || '');
+    setStatus(project.status);
+    setBudget(project.budget?.toString() || '');
+    setCurrency(project.currency || 'USD');
+    void fetchTeamMembers();
   }, [project, fetchTeamMembers]);
 
-  const handleSaveProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveProject = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!project) return;
 
     setIsSaving(true);
@@ -77,9 +122,10 @@ export default function ProjectSettingsPage() {
       });
 
       const data = await response.json();
+
       if (data.success) {
         setSaveMessage('Project updated successfully');
-        setTimeout(() => setSaveMessage(''), 3000);
+        window.setTimeout(() => setSaveMessage(''), 3000);
       } else {
         setSaveMessage(data.error || 'Failed to update project');
       }
@@ -92,13 +138,15 @@ export default function ProjectSettingsPage() {
 
   const handleRemoveMember = async (memberId: string) => {
     if (!project) return;
+
     try {
       const response = await apiFetch(
         `/api/projects/${project.project_id}/team?member_id=${memberId}`,
         { method: 'DELETE' }
       );
+
       if (response.ok) {
-        fetchTeamMembers();
+        await fetchTeamMembers();
       }
     } catch (err) {
       console.error('Error removing member:', err);
@@ -107,18 +155,42 @@ export default function ProjectSettingsPage() {
 
   const handleUpdateRole = async (memberId: string, role: TeamMember['role']) => {
     if (!project) return;
+
     try {
       const response = await apiFetch(`/api/projects/${project.project_id}/team`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ member_id: memberId, role }),
       });
+
       if (response.ok) {
-        fetchTeamMembers();
+        await fetchTeamMembers();
       }
     } catch (err) {
       console.error('Error updating role:', err);
     }
+  };
+
+  const handleCopyCode = async () => {
+    if (!project) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(project.project_code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  const handleExport = async () => {
+    if (!project) {
+      return;
+    }
+
+    exportDashboardSettingsCsv(
+      buildDashboardCsvFilename(project.project_code, 'dashboard-settings'),
+      project,
+      teamMembers
+    );
   };
 
   if (!project) {
@@ -136,98 +208,122 @@ export default function ProjectSettingsPage() {
       <DashboardHeader
         title="Project Settings"
         subtitle={`Manage ${project.project_code}`}
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 space-y-6">
-        {/* Project Info Form */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <FiSettings /> Project Information
-          </h2>
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={isLoadingTeam || !project}
+        />
+      </DashboardHeader>
 
-          <form onSubmit={handleSaveProject} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <DashboardTabs />
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.75fr)]">
+          <form
+            onSubmit={handleSaveProject}
+            className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(2,6,23,0.92))] p-6 shadow-[0_30px_80px_rgba(2,6,23,0.45)] backdrop-blur-xl sm:p-8"
+          >
+            <div className="mb-8 grid gap-4 rounded-[24px] border border-cyan-400/12 bg-cyan-400/[0.03] p-4 sm:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Control</p>
+                <p className="mt-2 text-sm text-slate-200">Project metadata feeds workspace filters and reporting.</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Ownership</p>
+                <p className="mt-2 text-sm text-slate-200">
+                  {isOwner ? 'You can update project settings and team roles.' : 'You can review settings but only the owner can change them.'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Status</p>
+                <p className="mt-2 text-sm text-slate-200">Use status deliberately so portfolio analytics stay trustworthy.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="lg:col-span-2">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <FiFolder className="h-4 w-4 text-cyan-300" />
                   Project Name
                 </label>
                 <input
                   type="text"
                   value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(event) => setProjectName(event.target.value)}
+                  disabled={!isOwner}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/60 focus:bg-white/[0.07] disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-slate-500"
+                />
+              </div>
+
+              <div className="lg:col-span-2">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <FiSettings className="h-4 w-4 text-cyan-300" />
+                  Description
+                </label>
+                <textarea
+                  rows={4}
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  disabled={!isOwner}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/60 focus:bg-white/[0.07] disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-slate-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <FiShield className="h-4 w-4 text-cyan-300" />
+                  Status
+                </label>
+                <CustomSelect
+                  name="status"
+                  value={status}
+                  options={statusOptions.map((option) => ({ value: option.value, label: option.label }))}
+                  onChange={(event) => setStatus(event.target.value as Project['status'])}
+                  usePortal
                   disabled={!isOwner}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Status
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <FiDollarSign className="h-4 w-4 text-cyan-300" />
+                  Currency
                 </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <CustomSelect
+                  name="currency"
+                  value={currency}
+                  options={currencyOptions.map((option) => ({ value: option.value, label: option.label }))}
+                  onChange={(event) => setCurrency(event.target.value)}
+                  usePortal
                   disabled={!isOwner}
-                >
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+              <div className="lg:col-span-2">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+                  <FiDollarSign className="h-4 w-4 text-cyan-300" />
                   Budget
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(event) => setBudget(event.target.value)}
+                  placeholder="25000"
                   disabled={!isOwner}
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/60 focus:bg-white/[0.07] disabled:cursor-not-allowed disabled:border-white/5 disabled:bg-white/[0.03] disabled:text-slate-500"
                 />
+                <p className="mt-2 text-xs text-slate-500">Leave empty if this project has no fixed budget yet.</p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Currency
-                </label>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={!isOwner}
-                >
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="GBP">GBP</option>
-                  <option value="VND">VND</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={!isOwner}
-              />
             </div>
 
             {saveMessage && (
               <div
-                className={`text-sm p-3 rounded-lg ${
+                className={`mt-6 rounded-2xl border px-4 py-3 text-sm ${
                   saveMessage.includes('success')
-                    ? 'text-green-400 bg-green-900/20 border border-green-900/50'
-                    : 'text-red-400 bg-red-900/20 border border-red-900/50'
+                    ? 'border-emerald-400/20 bg-emerald-500/10 text-emerald-200'
+                    : 'border-rose-400/20 bg-rose-500/10 text-rose-200'
                 }`}
               >
                 {saveMessage}
@@ -238,86 +334,134 @@ export default function ProjectSettingsPage() {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+                className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-5 py-3 font-medium text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <FiSave /> {isSaving ? 'Saving...' : 'Save Changes'}
+                <FiSave className={`h-4 w-4 ${isSaving ? 'animate-pulse' : ''}`} />
+                <span>{isSaving ? 'Saving changes...' : 'Save changes'}</span>
               </button>
             )}
           </form>
-        </div>
 
-        {/* Team Members */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <FiUsers /> Team Members ({teamMembers.length})
-          </h2>
-
-          {isLoadingTeam ? (
-            <div className="text-slate-400 text-center py-8">Loading team...</div>
-          ) : teamMembers.length === 0 ? (
-            <div className="text-slate-400 text-center py-8">No team members yet</div>
-          ) : (
-            <div className="space-y-3">
-              {teamMembers.map((member) => (
-                <div
-                  key={member.member_id}
-                  className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg"
-                >
-                  <div>
-                    <div className="text-white font-medium">
-                      {member.full_name || member.email || member.member_id}
-                    </div>
-                    <div className="text-slate-400 text-sm">{member.email}</div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <select
-                      value={member.role}
-                      onChange={(e) =>
-                        handleUpdateRole(member.member_id, e.target.value as TeamMember['role'])
-                      }
-                      className="px-3 py-1 bg-slate-600 border border-slate-500 rounded text-sm text-white"
-                      disabled={!isOwner}
-                    >
-                      <option value="owner">Owner</option>
-                      <option value="manager">Manager</option>
-                      <option value="member">Member</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-
-                    {isOwner && member.member_id !== user?.user_id && (
-                      <button
-                        onClick={() => handleRemoveMember(member.member_id)}
-                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    )}
+          <div className="space-y-6">
+            <section className="rounded-[30px] border border-white/10 bg-slate-950/55 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+              <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Project snapshot</p>
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border px-4 py-3 text-sm font-medium capitalize text-white bg-white/[0.03] border-white/10">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-medium ${getStatusTone(project.status)}`}>
+                      {getStatusLabel(project.status)}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Owner Control</p>
+                  <p className="mt-2 text-sm text-white">{isOwner ? 'Full settings access' : 'Read-only access'}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Team Members</p>
+                  <p className="mt-2 text-sm text-white">{teamMembers.length} active collaborators</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[30px] border border-white/10 bg-slate-950/55 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+              <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Project code</p>
+              <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
+                <code className="block text-xl font-semibold tracking-[0.22em] text-cyan-200">
+                  {project.project_code}
+                </code>
+                <p className="mt-2 text-sm text-slate-300">
+                  Share this code with team members so they can join the project.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/5"
+              >
+                {copied ? <FiCheck className="h-4 w-4 text-emerald-300" /> : <FiCopy className="h-4 w-4" />}
+                <span>{copied ? 'Copied' : 'Copy project code'}</span>
+              </button>
+            </section>
+          </div>
         </div>
 
-        {/* Project Code Display */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Project Code</h2>
-          <div className="flex items-center gap-4">
-            <code className="text-2xl font-mono text-blue-400 bg-slate-700 px-4 py-2 rounded-lg">
-              {project.project_code}
-            </code>
-            <button
-              onClick={() => navigator.clipboard.writeText(project.project_code)}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors text-sm"
-            >
-              Copy to Clipboard
-            </button>
+        <section className="rounded-[30px] border border-white/10 bg-slate-950/55 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl sm:p-8">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 text-xl font-semibold text-white">
+                <FiUsers className="h-5 w-5 text-cyan-300" />
+                Team Members
+              </h2>
+              <p className="mt-2 text-sm text-slate-400">Control member roles directly from the project workspace.</p>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-sm text-slate-200">
+              {teamMembers.length} member{teamMembers.length === 1 ? '' : 's'}
+            </span>
           </div>
-          <p className="text-slate-400 text-sm mt-2">
-            Share this code with team members so they can join the project.
-          </p>
-        </div>
+
+          {isLoadingTeam ? (
+            <div className="py-8 text-center text-slate-400">Loading team...</div>
+          ) : teamMembers.length === 0 ? (
+            <div className="py-8 text-center text-slate-400">No team members yet</div>
+          ) : (
+            <div className="space-y-4">
+              {teamMembers.map((member) => {
+                const displayName = member.full_name || member.email || member.member_id;
+                const initials = displayName
+                  .split(' ')
+                  .map((part) => part[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
+
+                return (
+                  <article
+                    key={member.member_id}
+                    className="flex flex-col gap-4 rounded-[26px] border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/80 to-sky-500 text-sm font-semibold text-slate-950">
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+                        <p className="truncate text-sm text-slate-400">{member.email || 'No email available'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 sm:min-w-[230px] sm:flex-row sm:items-center sm:justify-end">
+                      <div className="min-w-[170px]">
+                        <CustomSelect
+                          name={`role-${member.member_id}`}
+                          value={member.role}
+                          options={roleOptions.map((option) => ({ value: option.value, label: option.label }))}
+                          onChange={(event) =>
+                            handleUpdateRole(member.member_id, event.target.value as TeamMember['role'])
+                          }
+                          usePortal
+                          disabled={!isOwner}
+                        />
+                      </div>
+
+                      {isOwner && member.member_id !== user?.user_id && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(member.member_id)}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-400/20 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/10"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </>
   );

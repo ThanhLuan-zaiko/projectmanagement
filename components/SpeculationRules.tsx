@@ -2,17 +2,9 @@ const appNavigationSpeculationRules = {
   prefetch: [
     {
       where: {
-        selector_matches: ['a[data-speculate="prefetch"]', 'a[data-speculate="prerender"]'],
+        selector_matches: 'a[data-speculate="prefetch"]',
       },
       eagerness: 'moderate',
-    },
-  ],
-  prerender: [
-    {
-      where: {
-        selector_matches: 'a[data-speculate="prerender"]',
-      },
-      eagerness: 'conservative',
     },
   ],
 } as const;

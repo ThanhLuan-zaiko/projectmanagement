@@ -15,9 +15,16 @@ import {
   DashboardTabs,
   TableFilters,
   TablePagination,
+  DashboardExportButton,
 } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
 import { apiFetch } from '@/utils/api-client';
+import {
+  buildDashboardCsvFilename,
+  expertCsvColumns,
+  exportDashboardCsv,
+  fetchAllPaginatedExportRows,
+} from '@/components/dashboard/dashboardCsv';
 
 function ExpertSkeleton() {
   return (
@@ -97,6 +104,35 @@ function ExpertsContent() {
     setEditingItem(null);
     setFormData(initialFormData);
     setShowCreateModal(true);
+  };
+
+  const handleExport = async () => {
+    if (!project?.project_id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      project_id: project.project_id,
+      sort_by: urlFilters.sortBy,
+      sort_order: urlFilters.sortOrder,
+    });
+
+    if (urlFilters.search) params.set('search', urlFilters.search);
+    if (urlFilters.filters.availability_status && urlFilters.filters.availability_status !== 'all') {
+      params.set('availability_status', urlFilters.filters.availability_status);
+    }
+    if (urlFilters.filters.is_active && urlFilters.filters.is_active !== 'all') {
+      params.set('is_active', urlFilters.filters.is_active);
+    }
+
+    const rows = await fetchAllPaginatedExportRows<Expert>('/api/experts', params);
+
+    exportDashboardCsv(
+      buildDashboardCsvFilename(project.project_code, 'dashboard-experts'),
+      expertCsvColumns,
+      rows,
+      'Expert Management'
+    );
   };
 
   const refreshData = async () => {
@@ -282,7 +318,12 @@ function ExpertsContent() {
         subtitle="Manage your team of experts and their specializations"
         actionLabel="Add Expert"
         onAction={handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={expertsLoading || !project?.project_id}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />

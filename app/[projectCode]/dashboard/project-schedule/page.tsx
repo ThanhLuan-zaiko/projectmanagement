@@ -17,8 +17,15 @@ import {
   DashboardTabs,
   TableFilters,
   TablePagination,
+  DashboardExportButton,
 } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
+import {
+  buildDashboardCsvFilename,
+  exportDashboardCsv,
+  fetchAllPaginatedExportRows,
+  projectScheduleCsvColumns,
+} from '@/components/dashboard/dashboardCsv';
 
 function ProjectScheduleSkeleton() {
   return (
@@ -82,6 +89,39 @@ function ProjectSchedulesContent() {
   // Handlers
   const handleCreate = () => {
     setShowCreateModal(true);
+  };
+
+  const handleExport = async () => {
+    if (!project?.project_id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      project_id: project.project_id,
+      sort_by: urlFilters.sortBy,
+      sort_order: urlFilters.sortOrder,
+      ...(activeTab === 'trash' ? { include_deleted: 'true', deleted_only: 'true' } : {}),
+    });
+
+    if (urlFilters.search) params.set('search', urlFilters.search);
+    if (urlFilters.filters.schedule_type && urlFilters.filters.schedule_type !== 'all') {
+      params.set('schedule_type', urlFilters.filters.schedule_type);
+    }
+    if (urlFilters.filters.status && urlFilters.filters.status !== 'all') {
+      params.set('status', urlFilters.filters.status);
+    }
+
+    const rows = await fetchAllPaginatedExportRows<ProjectSchedule>('/api/project-schedules', params);
+
+    exportDashboardCsv(
+      buildDashboardCsvFilename(
+        project.project_code,
+        activeTab === 'trash' ? 'dashboard-project-schedules-trash' : 'dashboard-project-schedules'
+      ),
+      projectScheduleCsvColumns,
+      rows,
+      activeTab === 'trash' ? 'Project Schedule Trash' : 'Project Schedule Management'
+    );
   };
 
   const refreshData = async () => {
@@ -168,7 +208,12 @@ function ProjectSchedulesContent() {
         subtitle={activeTab === 'trash' ? 'View and restore deleted schedules' : 'Plan and manage schedules for your project phases, milestones, sprints, and releases'}
         actionLabel={activeTab === 'trash' ? undefined : 'Create Schedule'}
         onAction={activeTab === 'trash' ? undefined : handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={schedulesLoading || !project?.project_id}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />

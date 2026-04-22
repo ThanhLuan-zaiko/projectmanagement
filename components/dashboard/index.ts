@@ -19,6 +19,7 @@ export { default as TaskCompletionRateChart } from './TaskCompletionRateChart';
 export { default as PriorityTrendChart } from './PriorityTrendChart';
 export { default as WeeklyWorkloadChart } from './WeeklyWorkloadChart';
 export { default as StatusFlowChart } from './StatusFlowChart';
+export { default as DashboardExportButton } from './DashboardExportButton';
 export { default as Pagination } from './Pagination';
 export { default as ItemsPerPage } from './ItemsPerPage';
 export { default as SortControl } from './SortControl';

@@ -11,7 +11,7 @@ import ProjectStatGrid from './ProjectStatGrid';
 
 export default function ProjectsOverviewClient() {
   const router = useRouter();
-  const { summary, loading, error } = useProjectSummary();
+  const { summary, loading, isRefreshing, error } = useProjectSummary();
 
   if (loading) {
     return (
@@ -66,6 +66,7 @@ export default function ProjectsOverviewClient() {
         title="Operate your full project portfolio from one place."
         description="Track delivery health, open the right workspace quickly, and keep project hygiene under control with restore-aware project management."
         icon={FiActivity}
+        isRefreshing={isRefreshing}
         highlights={[
           { label: 'Portfolio', value: `${summary.kpis.total_projects} visible` },
           { label: 'In Flight', value: `${summary.kpis.active_projects} active` },

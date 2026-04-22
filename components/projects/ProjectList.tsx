@@ -1,4 +1,5 @@
 import type { Project } from '@/types/project';
+import { FiLoader } from 'react-icons/fi';
 import ProjectCard from './ProjectCard';
 import ProjectEmptyState from './ProjectEmptyState';
 import ItemsPerPage from '@/components/dashboard/ItemsPerPage';
@@ -31,6 +32,7 @@ interface ProjectListProps {
   onLimitChange?: (limit: number) => void;
   // Loading
   loading?: boolean;
+  isRefreshing?: boolean;
 }
 
 function deduplicateProjects(projects: Project[]): Project[] {
@@ -63,6 +65,7 @@ export default function ProjectList({
   onPageChange,
   onLimitChange,
   loading = false,
+  isRefreshing = false,
 }: ProjectListProps) {
   return (
     <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30 sm:p-8">
@@ -72,7 +75,13 @@ export default function ProjectList({
           <p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
         </div>
         {pagination && onLimitChange && (
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
+            {isRefreshing && (
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/15 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
+                <FiLoader className="h-3.5 w-3.5 animate-spin" />
+                <span>Updating</span>
+              </div>
+            )}
             <ItemsPerPage
               value={pagination.limit}
               onChange={onLimitChange}

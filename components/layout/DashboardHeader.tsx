@@ -22,7 +22,7 @@ export default function DashboardHeader({
   const { user } = useAuth();
 
   return (
-    <div className="relative z-50 overflow-visible border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-xl">
+    <div className="relative z-10 overflow-visible border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-md lg:z-40 lg:backdrop-blur-xl">
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>

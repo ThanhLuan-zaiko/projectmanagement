@@ -21,8 +21,13 @@ import {
   PriorityTrendChart,
   WeeklyWorkloadChart,
   StatusFlowChart,
+  DashboardExportButton,
 } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
+import {
+  buildDashboardCsvFilename,
+  exportDashboardOverviewCsv,
+} from '@/components/dashboard/dashboardCsv';
 
 function DashboardSkeleton() {
   return (
@@ -64,6 +69,17 @@ export default function ProjectDashboardPage() {
     setShowCreateModal(true);
   };
 
+  const handleExport = async () => {
+    if (!stats) {
+      return;
+    }
+
+    exportDashboardOverviewCsv(
+      buildDashboardCsvFilename(project?.project_code, 'dashboard-overview'),
+      stats
+    );
+  };
+
   // Show minimal loading on initial mount (very fast)
   if (authLoading) {
     return (
@@ -90,7 +106,12 @@ export default function ProjectDashboardPage() {
         subtitle={`Project: ${project?.project_code}`}
         actionLabel="Create Task"
         onAction={handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={statsLoading || !stats}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />

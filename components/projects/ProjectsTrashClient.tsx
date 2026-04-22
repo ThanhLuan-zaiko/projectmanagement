@@ -17,6 +17,7 @@ export default function ProjectsTrashClient() {
     defaultLimit: 12,
     defaultSortBy: 'updated_at',
     defaultSortOrder: 'desc',
+    searchDebounceMs: 250,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [restoreModalProject, setRestoreModalProject] = useState<Project | null>(null);
@@ -40,7 +41,12 @@ export default function ProjectsTrashClient() {
     setIsRefreshing(false);
   };
 
-  const { busyProjectId, busyAction, restoreProject, permanentlyDeleteProject } = useProjectActions(refreshTrash);
+  const trashBusy = isRefreshing || urlFilters.isNavigating || trashState.isRefreshing;
+
+  const { busyProjectId, busyAction, restoreProject, permanentlyDeleteProject } = useProjectActions({
+    onSuccess: refreshTrash,
+    onOptimisticRemove: (project) => trashState.optimisticallyRemove(project.project_id),
+  });
 
   const handleRestore = async (project: Project) => {
     setRestoreModalProject(project);
@@ -48,8 +54,10 @@ export default function ProjectsTrashClient() {
 
   const handleConfirmRestore = async () => {
     if (!restoreModalProject) return;
-    await restoreProject(restoreModalProject);
-    setRestoreModalProject(null);
+    const success = await restoreProject(restoreModalProject);
+    if (success) {
+      setRestoreModalProject(null);
+    }
   };
 
   const handlePermanentDelete = async (project: Project) => {
@@ -58,8 +66,10 @@ export default function ProjectsTrashClient() {
 
   const handleConfirmPermanentDelete = async () => {
     if (!deleteModalProject) return;
-    await permanentlyDeleteProject(deleteModalProject);
-    setDeleteModalProject(null);
+    const success = await permanentlyDeleteProject(deleteModalProject);
+    if (success) {
+      setDeleteModalProject(null);
+    }
   };
 
   return (
@@ -69,6 +79,7 @@ export default function ProjectsTrashClient() {
         title="Restore safely before permanent deletion."
         description="Deleted projects stay recoverable here until you choose to remove them permanently."
         icon={FiTrash2}
+        isRefreshing={trashBusy}
         highlights={[
           { label: 'Deleted', value: trashState.pagination.total },
           { label: 'Filter', value: urlFilters.filters.status || 'all' },
@@ -81,7 +92,7 @@ export default function ProjectsTrashClient() {
         status={urlFilters.filters.status || 'all'}
         sortBy={urlFilters.sortBy}
         sortOrder={urlFilters.sortOrder}
-        isRefreshing={isRefreshing}
+        isRefreshing={trashBusy}
         onSearchChange={urlFilters.setSearch}
         onStatusChange={(value) => urlFilters.setFilter('status', value)}
         onSortByChange={(value) => urlFilters.setSort(value, urlFilters.sortOrder)}
@@ -114,6 +125,7 @@ export default function ProjectsTrashClient() {
         busyProjectId={busyProjectId}
         busyAction={busyAction}
         loading={trashState.loading}
+        isRefreshing={trashBusy}
         pagination={trashState.pagination}
         onPageChange={(page) => urlFilters.setPage(page)}
         onLimitChange={(limit) => urlFilters.setLimit(limit)}

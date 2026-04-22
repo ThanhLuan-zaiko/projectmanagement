@@ -18,8 +18,15 @@ import {
   DashboardTabs,
   TableFilters,
   TablePagination,
+  DashboardExportButton,
 } from '@/components/dashboard';
 import { DashboardHeader } from '@/components/layout';
+import {
+  buildDashboardCsvFilename,
+  costEstimateCsvColumns,
+  exportDashboardCsv,
+  fetchAllPaginatedExportRows,
+} from '@/components/dashboard/dashboardCsv';
 
 function CostEstimateSkeleton() {
   return (
@@ -84,6 +91,40 @@ function CostEstimatesContent() {
   // Handlers
   const handleCreate = () => {
     setShowCreateModal(true);
+  };
+
+  const handleExport = async () => {
+    if (!project?.project_id) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      project_id: project.project_id,
+      sort_by: urlFilters.sortBy,
+      sort_order: urlFilters.sortOrder,
+      ...(activeTab === 'trash' ? { include_deleted: 'true', deleted_only: 'true' } : {}),
+    });
+
+    if (urlFilters.search) params.set('search', urlFilters.search);
+    if (urlFilters.filters.work_item_id) params.set('work_item_id', urlFilters.filters.work_item_id);
+    if (urlFilters.filters.estimate_type && urlFilters.filters.estimate_type !== 'all') {
+      params.set('estimate_type', urlFilters.filters.estimate_type);
+    }
+    if (urlFilters.filters.status && urlFilters.filters.status !== 'all') {
+      params.set('status', urlFilters.filters.status);
+    }
+
+    const rows = await fetchAllPaginatedExportRows<CostEstimate>('/api/cost-estimates', params);
+
+    exportDashboardCsv(
+      buildDashboardCsvFilename(
+        project.project_code,
+        activeTab === 'trash' ? 'dashboard-cost-estimates-trash' : 'dashboard-cost-estimates'
+      ),
+      costEstimateCsvColumns,
+      rows,
+      activeTab === 'trash' ? 'Cost Estimate Trash' : 'Project Cost Estimation'
+    );
   };
 
   const refreshData = async () => {
@@ -170,7 +211,12 @@ function CostEstimatesContent() {
         subtitle={activeTab === 'trash' ? 'View and restore deleted cost estimates' : 'Estimate and manage costs for project work items'}
         actionLabel={activeTab === 'trash' ? undefined : 'Create Estimate'}
         onAction={activeTab === 'trash' ? undefined : handleCreate}
-      />
+      >
+        <DashboardExportButton
+          onExport={handleExport}
+          disabled={estimatesLoading || !project?.project_id}
+        />
+      </DashboardHeader>
       <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Navigation */}
         <DashboardTabs />
