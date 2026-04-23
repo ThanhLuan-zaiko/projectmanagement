@@ -1,5 +1,6 @@
-import { FiUser, FiMail, FiClock, FiDollarSign, FiEye, FiEdit2, FiTrash2, FiLoader, FiRotateCcw } from 'react-icons/fi';
+import { FiMail, FiClock, FiDollarSign, FiEye, FiEdit2, FiTrash2, FiLoader, FiRotateCcw } from 'react-icons/fi';
 import { Expert } from '@/types/expert';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface ExpertCardProps {
   expert: Expert;
@@ -29,7 +30,7 @@ export default function ExpertCard({
   const availabilityColor = availabilityColors[expert.availability_status || 'available'];
 
   return (
-    <div className={`p-4 sm:p-6 transition-colors ${isInactive ? 'bg-slate-800/30 opacity-60' : 'hover:bg-slate-700/30'}`}>
+    <DashboardShapeCard muted={isInactive} contentClassName="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -123,6 +124,6 @@ export default function ExpertCard({
           </button>
         </div>
       </div>
-    </div>
+    </DashboardShapeCard>
   );
 }

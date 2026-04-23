@@ -10,6 +10,7 @@ import {
   getProjectDashboardNavItems,
   type DashboardNavItem,
 } from '@/components/dashboard/dashboardNavigation';
+import AnimatedList from '@/components/ui/AnimatedList';
 
 export function useProjectNavItems(): DashboardNavItem[] {
   const params = useParams();
@@ -42,10 +43,11 @@ export default function DashboardSidebar({
   const prefetchedHrefsRef = useRef(new Set<string>());
   const optimisticNavId = pendingNav && pathname !== pendingNav.href ? pendingNav.id : null;
   const activeItemId = optimisticNavId ?? getActiveDashboardNavItem(pathname, navItems)?.id ?? null;
+  const activeItemIndex = activeItemId ? navItems.findIndex((item) => item.id === activeItemId) : -1;
   const desktopCollapsed = variant === 'desktop' && isCollapsed;
 
   useEffect(() => {
-    if (!activeItemId) {
+    if (variant !== 'mobile' || !activeItemId) {
       return;
     }
 
@@ -68,7 +70,7 @@ export default function DashboardSidebar({
     });
 
     return () => window.cancelAnimationFrame(frameId);
-  }, [activeItemId, optimisticNavId]);
+  }, [activeItemId, optimisticNavId, variant]);
 
   useEffect(() => {
     if (navItems.length === 0) {
@@ -119,52 +121,9 @@ export default function DashboardSidebar({
     }
   };
 
-  const renderNavLink = (item: DashboardNavItem) => {
+  const renderMobileNavLink = (item: DashboardNavItem) => {
     const active = item.id === activeItemId;
     const Icon = item.icon;
-
-    if (variant === 'mobile') {
-      return (
-        <Link
-          key={item.id}
-          href={item.href}
-          prefetch={true}
-          ref={(node) => {
-            itemRefs.current[item.id] = node;
-          }}
-          onPointerDown={() => setPendingNav({ id: item.id, href: item.href })}
-          onClick={() => {
-            setPendingNav({ id: item.id, href: item.href });
-            handleLinkClick();
-          }}
-          className={`group relative flex items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 transition-all duration-200 ease-out ${
-            active
-              ? 'border-blue-500/40 bg-gradient-to-r from-blue-600/20 via-blue-500/10 to-violet-600/20 text-white shadow-lg shadow-blue-950/40'
-              : 'border-transparent text-slate-300 hover:border-slate-700/70 hover:bg-slate-800/80 hover:text-white'
-          }`}
-          aria-current={active ? 'page' : undefined}
-          title={item.label}
-        >
-          <div
-            className={`absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-sky-400 to-violet-500 transition-opacity duration-200 ${
-              active ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
-              active
-                ? 'bg-blue-500/10 text-sky-300'
-                : 'text-slate-400 group-hover:bg-slate-700/80 group-hover:text-slate-100'
-            }`}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">{item.label}</span>
-          </div>
-        </Link>
-      );
-    }
 
     return (
       <Link
@@ -175,13 +134,54 @@ export default function DashboardSidebar({
           itemRefs.current[item.id] = node;
         }}
         onPointerDown={() => setPendingNav({ id: item.id, href: item.href })}
+        onClick={() => {
+          setPendingNav({ id: item.id, href: item.href });
+          handleLinkClick();
+        }}
+        className={`group relative flex items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 transition-all duration-200 ease-out ${
+          active
+            ? 'border-blue-500/40 bg-gradient-to-r from-blue-600/20 via-blue-500/10 to-violet-600/20 text-white shadow-lg shadow-blue-950/40'
+            : 'border-transparent text-slate-300 hover:border-slate-700/70 hover:bg-slate-800/80 hover:text-white'
+        }`}
+        aria-current={active ? 'page' : undefined}
+        title={item.label}
+      >
+        <div
+          className={`absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-gradient-to-b from-sky-400 to-violet-500 transition-opacity duration-200 ${
+            active ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
+            active
+              ? 'bg-blue-500/10 text-sky-300'
+              : 'text-slate-400 group-hover:bg-slate-700/80 group-hover:text-slate-100'
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{item.label}</span>
+        </div>
+      </Link>
+    );
+  };
+
+  const renderDesktopNavLink = (item: DashboardNavItem, active: boolean) => {
+    const Icon = item.icon;
+
+    return (
+      <Link
+        href={item.href}
+        prefetch={true}
+        onPointerDown={() => setPendingNav({ id: item.id, href: item.href })}
         onClick={() => setPendingNav({ id: item.id, href: item.href })}
         className={`group relative flex h-14 items-center overflow-hidden rounded-2xl border transition-all duration-300 ease-out ${
           desktopCollapsed ? 'justify-center px-0' : 'gap-3 px-4'
         } ${
           active
-            ? 'border-blue-500/40 bg-gradient-to-r from-blue-600/20 via-blue-500/10 to-violet-600/20 text-white shadow-lg shadow-blue-950/35'
-            : 'border-transparent text-slate-400 hover:border-slate-700/70 hover:bg-slate-800/70 hover:text-white'
+            ? 'border-blue-500/35 bg-gradient-to-r from-blue-600/20 via-blue-500/10 to-violet-600/20 text-white shadow-lg shadow-blue-950/35'
+            : 'border-white/5 bg-white/[0.04] text-slate-300 hover:border-slate-600/60 hover:bg-white/[0.08] hover:text-white'
         }`}
         aria-current={active ? 'page' : undefined}
         title={desktopCollapsed ? item.label : undefined}
@@ -243,7 +243,7 @@ export default function DashboardSidebar({
           }}
           className="flex-1 overflow-y-auto px-3 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <nav className="space-y-2">{navItems.map(renderNavLink)}</nav>
+          <nav className="space-y-2">{navItems.map(renderMobileNavLink)}</nav>
 
           <div className="mt-6 grid gap-3">
             <Link
@@ -312,14 +312,22 @@ export default function DashboardSidebar({
         </div>
       </div>
 
-      <nav
-        ref={(node) => {
-          navContainerRef.current = node;
-        }}
-        className="flex-1 space-y-2 overflow-y-auto px-3 py-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {navItems.map(renderNavLink)}
-      </nav>
+      <div className="min-h-0 flex-1">
+        <AnimatedList
+          items={navItems}
+          selectedIndex={activeItemIndex}
+          showGradients
+          enableArrowNavigation={false}
+          displayScrollbar
+          selectOnHover={false}
+          ariaLabel="Project navigation"
+          className="h-full w-full"
+          listClassName="h-full max-h-none px-3 py-4"
+          itemWrapperClassName="mb-2 last:mb-0"
+          getItemKey={(item) => item.id}
+          renderItem={(item, _index, { isSelected }) => renderDesktopNavLink(item, isSelected)}
+        />
+      </div>
 
       <div className="px-3 pb-4">
         <div className="space-y-2">

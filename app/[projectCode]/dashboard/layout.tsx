@@ -13,7 +13,7 @@ export default function DashboardSubLayout({ children }: DashboardSubLayoutProps
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900">
+      <div className="theme-projects-shell min-h-screen flex items-center justify-center text-slate-100">
         <div className="text-white text-xl">Loading project...</div>
       </div>
     );

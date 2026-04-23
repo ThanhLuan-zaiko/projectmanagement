@@ -1,6 +1,7 @@
 'use client';
 
 import { FiCalendar, FiAlertTriangle } from 'react-icons/fi';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface DeadlineItem {
   id: string;
@@ -49,14 +50,16 @@ export default function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps)
           const isUrgent = days <= 2;
 
           return (
-            <div
+            <DashboardShapeCard
               key={deadline.id}
-              className={`p-3 rounded-lg border transition-colors ${
+              compact
+              contentClassName="p-3"
+              className={`${
                 isOverdue
-                  ? 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20'
+                  ? 'border-red-500/30 bg-red-950/35'
                   : isUrgent
-                  ? 'bg-orange-500/10 border-orange-500/30 hover:bg-orange-500/20'
-                  : 'bg-slate-700/30 border-slate-700 hover:bg-slate-700/50'
+                  ? 'border-orange-500/30 bg-orange-950/30'
+                  : 'border-slate-700/80 bg-slate-900/70'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -103,7 +106,7 @@ export default function UpcomingDeadlines({ deadlines }: UpcomingDeadlinesProps)
                   </div>
                 </div>
               </div>
-            </div>
+            </DashboardShapeCard>
           );
         })}
       </div>

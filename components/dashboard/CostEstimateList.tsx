@@ -63,21 +63,19 @@ export default function CostEstimateList({
   }
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-xl">
-      <div className="divide-y divide-slate-700">
-        {estimates.map((estimate) => (
-          <CostEstimateCard
-            key={estimate.estimate_id}
-            estimate={estimate}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={() => onDelete(estimate)}
-            onRestore={onRestore ? () => onRestore(estimate) : undefined}
-            deletingId={deletingId}
-            isRestoringId={isRestoringId}
-          />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {estimates.map((estimate) => (
+        <CostEstimateCard
+          key={estimate.estimate_id}
+          estimate={estimate}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={() => onDelete(estimate)}
+          onRestore={onRestore ? () => onRestore(estimate) : undefined}
+          deletingId={deletingId}
+          isRestoringId={isRestoringId}
+        />
+      ))}
     </div>
   );
 }

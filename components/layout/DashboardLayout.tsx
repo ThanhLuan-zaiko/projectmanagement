@@ -51,7 +51,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
   }, [sidebarCollapsed]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="theme-projects-shell relative min-h-screen overflow-x-hidden text-slate-100">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children, header }: DashboardLayoutPro
         }`}
       >
         {/* Mobile Header */}
-        <header className="sticky top-0 z-[90] border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-md lg:hidden">
+        <header className="theme-projects-header sticky top-0 z-[90] border-b border-white/10 backdrop-blur-xl lg:hidden">
           <div className="flex items-center justify-between px-4 py-4">
             <button
               onClick={() => setMobileMenuOpen(true)}

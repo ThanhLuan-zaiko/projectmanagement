@@ -97,7 +97,7 @@ export default function TableFilters({
   ];
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 backdrop-blur-xl">
+    <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_20px_52px_-34px_rgba(2,6,23,0.88),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[24px] sm:mb-6 sm:rounded-[28px] sm:p-6">
       <div className="space-y-4">
         {/* Filters Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -111,7 +111,7 @@ export default function TableFilters({
               onChange={(e) => {
                 setLocalSearch(e.target.value);
               }}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40 hover:bg-white/[0.06] sm:rounded-xl sm:py-2.5 sm:pl-10 sm:text-base"
             />
             {search !== localSearch && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -136,7 +136,7 @@ export default function TableFilters({
         </div>
 
         {/* Controls Row */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-3 border-t border-slate-700">
+        <div className="flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-3 sm:flex-row sm:items-center">
           <div className="flex flex-wrap items-center gap-4">
             {/* Items Per Page */}
             <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default function TableFilters({
                 />
                 <button
                   onClick={() => onSortOrderToggle?.()}
-                  className="p-2 bg-slate-700/50 border border-slate-600 rounded-lg hover:bg-slate-600/50 transition-all text-slate-400 hover:text-white"
+                  className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white"
                   title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                 >
                   {sortOrder === 'asc' ? (
@@ -194,7 +194,7 @@ export default function TableFilters({
               <button
                 onClick={onRefresh}
                 disabled={isRefreshing}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-slate-600/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-slate-300 transition-all hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FiRefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
@@ -204,7 +204,7 @@ export default function TableFilters({
 
         {/* Active Filter Tags */}
         {hasActiveFilters && activeFilterTags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/50">
+          <div className="flex flex-wrap items-center gap-2 border-t border-white/8 pt-2">
             <span className="text-xs text-slate-500">Active filters:</span>
             {activeFilterTags.map((tag) => (
               <span

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FiSearch, FiFilter } from 'react-icons/fi';
 
 interface TaskFiltersProps {
@@ -25,25 +25,39 @@ export default function TaskFilters({
 }: TaskFiltersProps) {
   const [localSearch, setLocalSearch] = useState(filters.searchQuery);
   const [isSearching, setIsSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Update local search when filters change from outside
   useEffect(() => {
-    setLocalSearch(filters.searchQuery);
-  }, [filters.searchQuery]);
-
-  // Handle real-time search with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localSearch !== filters.searchQuery) {
-        onSearchChange(localSearch);
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
       }
-    }, 300);
+    };
+  }, []);
 
-    return () => clearTimeout(timer);
-  }, [localSearch]);
+  const queueSearchChange = (nextSearch: string) => {
+    setLocalSearch(nextSearch);
+    setIsSearching(true);
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    searchTimerRef.current = setTimeout(() => {
+      onSearchChange(nextSearch);
+      setIsSearching(false);
+      searchTimerRef.current = null;
+    }, 300);
+  };
 
   const handleClearFilters = () => {
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+
     setLocalSearch('');
+    setIsSearching(false);
     onSearchChange('');
     onStatusChange('all');
     onPriorityChange('all');
@@ -57,7 +71,7 @@ export default function TaskFilters({
     filters.filterType !== 'all';
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 backdrop-blur-xl">
+    <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_20px_52px_-34px_rgba(2,6,23,0.88),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[24px] sm:mb-6 sm:rounded-[28px] sm:p-6">
       <div className="space-y-4">
         {/* Filters Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -67,12 +81,11 @@ export default function TaskFilters({
             <input
               type="text"
               placeholder="Search tasks..."
-              value={localSearch}
+              value={isSearching ? localSearch : filters.searchQuery}
               onChange={(e) => {
-                setLocalSearch(e.target.value);
-                setIsSearching(true);
+                queueSearchChange(e.target.value);
               }}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-4 text-sm text-white placeholder-slate-500 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40 hover:bg-white/[0.06] sm:rounded-xl sm:py-2.5 sm:pl-10 sm:text-base"
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -87,7 +100,7 @@ export default function TaskFilters({
             <select
               value={filters.filterStatus}
               onChange={(e) => onStatusChange(e.target.value)}
-              className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+              className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.04] py-2 pl-9 pr-4 text-sm text-white transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40 hover:bg-white/[0.06] sm:rounded-xl sm:py-2.5 sm:pl-10 sm:text-base"
             >
               <option value="all">All Status</option>
               <option value="todo">To Do</option>
@@ -102,7 +115,7 @@ export default function TaskFilters({
           <select
             value={filters.filterPriority}
             onChange={(e) => onPriorityChange(e.target.value)}
-            className="w-full px-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+            className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40 hover:bg-white/[0.06] sm:rounded-xl sm:py-2.5 sm:text-base"
           >
             <option value="all">All Priority</option>
             <option value="low">Low</option>
@@ -115,7 +128,7 @@ export default function TaskFilters({
           <select
             value={filters.filterType}
             onChange={(e) => onTypeChange(e.target.value)}
-            className="w-full px-4 py-2 sm:py-2.5 bg-slate-700/50 border border-slate-600 rounded-lg sm:rounded-xl text-sm sm:text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+            className="w-full appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/40 hover:bg-white/[0.06] sm:rounded-xl sm:py-2.5 sm:text-base"
           >
             <option value="all">All Types</option>
             <option value="task">Task</option>
@@ -127,13 +140,13 @@ export default function TaskFilters({
 
         {/* Bottom Bar */}
         {hasActiveFilters && (
-          <div className="flex items-center justify-between pt-3 border-t border-slate-700">
+          <div className="flex items-center justify-between border-t border-white/10 pt-3">
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500">Active filters:</span>
               <div className="flex gap-2">
                 {filters.searchQuery && (
                   <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30">
-                    Search: "{filters.searchQuery}"
+                    {`Search: "${filters.searchQuery}"`}
                   </span>
                 )}
                 {filters.filterStatus !== 'all' && (

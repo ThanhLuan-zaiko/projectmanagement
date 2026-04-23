@@ -1,6 +1,6 @@
 'use client';
 
-import { FiClock, FiAlertTriangle } from 'react-icons/fi';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface ActivityItem {
   id: string;
@@ -46,9 +46,11 @@ export default function ActivityList({ activities }: ActivityListProps) {
       <p className="text-slate-400 mt-1 text-sm">Latest task updates</p>
       <div className="mt-6 space-y-3">
         {activities.map((activity) => (
-          <div
+          <DashboardShapeCard
             key={activity.id}
-            className="p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors"
+            compact
+            className="bg-slate-900/70"
+            contentClassName="p-3"
           >
             <div className="flex items-start gap-3">
               <div
@@ -77,7 +79,7 @@ export default function ActivityList({ activities }: ActivityListProps) {
                 </div>
               </div>
             </div>
-          </div>
+          </DashboardShapeCard>
         ))}
       </div>
     </div>

@@ -63,21 +63,19 @@ export default function ProjectScheduleList({
   }
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-xl">
-      <div className="divide-y divide-slate-700">
-        {schedules.map((schedule) => (
-          <ProjectScheduleCard
-            key={schedule.schedule_id}
-            schedule={schedule}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={() => onDelete(schedule)}
-            onRestore={onRestore ? () => onRestore(schedule) : undefined}
-            deletingId={deletingId}
-            isRestoringId={isRestoringId}
-          />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {schedules.map((schedule) => (
+        <ProjectScheduleCard
+          key={schedule.schedule_id}
+          schedule={schedule}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={() => onDelete(schedule)}
+          onRestore={onRestore ? () => onRestore(schedule) : undefined}
+          deletingId={deletingId}
+          isRestoringId={isRestoringId}
+        />
+      ))}
     </div>
   );
 }

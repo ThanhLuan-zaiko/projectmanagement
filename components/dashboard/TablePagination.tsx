@@ -60,7 +60,7 @@ export default function TablePagination({
   const endItem = Math.min(currentPage * limit, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 backdrop-blur-xl">
+    <div className="flex flex-col items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_20px_52px_-34px_rgba(2,6,23,0.88),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[24px] sm:flex-row sm:rounded-[28px] sm:p-6">
       {/* Info */}
       <div className="text-sm text-slate-400">
         {totalItems > 0 ? (
@@ -88,7 +88,7 @@ export default function TablePagination({
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           title="First page"
         >
           <FiChevronsLeft className="w-4 h-4" />
@@ -98,7 +98,7 @@ export default function TablePagination({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           title="Previous page"
         >
           <FiChevronLeft className="w-4 h-4" />
@@ -116,7 +116,7 @@ export default function TablePagination({
                   ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                   : page === '...'
                   ? 'text-slate-500 cursor-default'
-                  : 'bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  : 'border border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-white'
               }`}
             >
               {page}
@@ -128,7 +128,7 @@ export default function TablePagination({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           title="Next page"
         >
           <FiChevronRight className="w-4 h-4" />
@@ -138,7 +138,7 @@ export default function TablePagination({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg bg-slate-700/50 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-600/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-slate-400 transition-all hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
           title="Last page"
         >
           <FiChevronsRight className="w-4 h-4" />

@@ -61,20 +61,18 @@ export default function TaskList({
   }
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-xl">
-      <div className="divide-y divide-slate-700">
-        {tasks.map((item) => (
-          <TaskCard
-            key={item.work_item_id}
-            item={item}
-            onView={onView}
-            onEdit={onEdit}
-            onDelete={() => onDelete(item)}
-            onRestore={onRestore}
-            deletingId={deletingId}
-          />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {tasks.map((item) => (
+        <TaskCard
+          key={item.work_item_id}
+          item={item}
+          onView={onView}
+          onEdit={onEdit}
+          onDelete={() => onDelete(item)}
+          onRestore={onRestore}
+          deletingId={deletingId}
+        />
+      ))}
     </div>
   );
 }

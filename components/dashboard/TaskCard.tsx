@@ -1,6 +1,7 @@
 import { FiCalendar, FiClock, FiUser, FiEye, FiEdit2, FiTrash2, FiLoader, FiRotateCcw } from 'react-icons/fi';
 import { WorkItem } from '@/types/work-item';
 import { StatusBadge, PriorityBadge, TypeBadge } from '@/components/ui/Badges';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface TaskCardProps {
   item: WorkItem;
@@ -16,7 +17,7 @@ export default function TaskCard({ item, onView, onEdit, onDelete, onRestore, de
   const isCancelled = item.status === 'cancelled';
 
   return (
-    <div className={`p-4 sm:p-6 transition-colors ${isCancelled ? 'bg-slate-800/30 opacity-60' : 'hover:bg-slate-700/30'}`}>
+    <DashboardShapeCard muted={isCancelled} contentClassName="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -116,6 +117,6 @@ export default function TaskCard({ item, onView, onEdit, onDelete, onRestore, de
           </button>
         </div>
       </div>
-    </div>
+    </DashboardShapeCard>
   );
 }

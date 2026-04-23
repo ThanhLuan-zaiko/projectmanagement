@@ -1,4 +1,4 @@
-import { FiAlertCircle, FiLoader, FiPlus, FiUser } from 'react-icons/fi';
+import { FiAlertCircle, FiLoader, FiPlus } from 'react-icons/fi';
 import { Expert } from '@/types/expert';
 import ExpertCard from '@/components/dashboard/ExpertCard';
 
@@ -61,20 +61,18 @@ export default function ExpertList({
   }
 
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl sm:rounded-2xl overflow-hidden backdrop-blur-xl">
-      <div className="divide-y divide-slate-700">
-        {experts.map((expert) => (
-          <ExpertCard
-            key={expert.expert_id}
-            expert={expert}
-            onView={() => onView(expert)}
-            onEdit={onEdit}
-            onDelete={() => onDelete(expert)}
-            onRestore={() => onRestore(expert)}
-            deletingId={deletingId}
-          />
-        ))}
-      </div>
+    <div className="space-y-4">
+      {experts.map((expert) => (
+        <ExpertCard
+          key={expert.expert_id}
+          expert={expert}
+          onView={() => onView(expert)}
+          onEdit={onEdit}
+          onDelete={() => onDelete(expert)}
+          onRestore={() => onRestore(expert)}
+          deletingId={deletingId}
+        />
+      ))}
     </div>
   );
 }

@@ -1,5 +1,6 @@
-import { FiCalendar, FiClock, FiUser, FiEye, FiEdit2, FiTrash2, FiLoader, FiBarChart2, FiRotateCcw } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiUser, FiEye, FiEdit2, FiTrash2, FiLoader, FiRotateCcw } from 'react-icons/fi';
 import { ExpertTimeEstimate } from '@/types/expert-estimate';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface ExpertEstimateCardProps {
   estimate: ExpertTimeEstimate;
@@ -39,7 +40,7 @@ export default function ExpertEstimateCard({
   const methodLabel = methodLabels[estimate.estimation_method || 'expert_judgment'];
 
   return (
-    <div className="p-4 sm:p-6 hover:bg-slate-700/30 transition-colors">
+    <DashboardShapeCard contentClassName="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -145,6 +146,6 @@ export default function ExpertEstimateCard({
           </button>
         </div>
       </div>
-    </div>
+    </DashboardShapeCard>
   );
 }

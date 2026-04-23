@@ -1,5 +1,6 @@
 import { FiCalendar, FiClock, FiEye, FiEdit2, FiTrash2, FiLoader, FiRotateCcw, FiTrendingUp, FiAlertCircle } from 'react-icons/fi';
 import { WorkItemSchedule } from '@/types/work-schedule';
+import DashboardShapeCard from '@/components/dashboard/DashboardShapeCard';
 
 interface WorkScheduleCardProps {
   schedule: WorkItemSchedule;
@@ -54,7 +55,7 @@ export default function WorkScheduleCard({
   };
 
   return (
-    <div className="p-4 sm:p-6 hover:bg-slate-700/30 transition-colors">
+    <DashboardShapeCard contentClassName="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
@@ -163,6 +164,6 @@ export default function WorkScheduleCard({
           </button>
         </div>
       </div>
-    </div>
+    </DashboardShapeCard>
   );
 }
