@@ -6,6 +6,7 @@ import { FiActivity, FiArrowRight, FiBarChart2, FiFolderPlus, FiTrash2 } from 'r
 import { useProjectSummary } from '@/hooks/useProjectSummary';
 import ProjectCharts from './ProjectCharts';
 import ProjectList from './ProjectList';
+import { ProjectsBentoCard, ProjectsBentoGrid } from './ProjectsBento';
 import ProjectsPageHeader from './ProjectsPageHeader';
 import ProjectStatGrid from './ProjectStatGrid';
 
@@ -85,52 +86,64 @@ export default function ProjectsOverviewClient() {
 
       <ProjectStatGrid kpis={summary.kpis} />
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_1.1fr_0.8fr]">
-        <Link
-          href="/projects/workspace"
-          className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl transition hover:border-cyan-400/20 hover:bg-slate-950/70"
-        >
-          <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Workspace</p>
-          <h3 className="mt-3 text-xl font-semibold text-white">Review active projects</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Filter owned and collaborative work, open dashboards and keep project metadata current.
-          </p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cyan-300">
-            Open workspace
-            <FiArrowRight className="h-4 w-4" />
-          </span>
-        </Link>
+      <ProjectsBentoGrid gridClassName="grid-cols-1 xl:grid-cols-6">
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[220px]">
+          <Link href="/projects/workspace" aria-label="Open workspace" className="absolute inset-0 z-20 rounded-[28px]" />
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div>
+              <p className="projects-bento-kicker text-xs uppercase tracking-[0.22em]">Workspace</p>
+              <h3 className="mt-3 text-xl font-semibold text-white">Review active projects</h3>
+            </div>
+            <div>
+              <p className="text-sm leading-6 text-slate-300">
+                Filter owned and collaborative work, open dashboards and keep project metadata current.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cyan-300">
+                Open workspace
+                <FiArrowRight className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </ProjectsBentoCard>
 
-        <Link
-          href="/projects/analytics"
-          className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl transition hover:border-cyan-400/20 hover:bg-slate-950/70"
-        >
-          <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Analytics</p>
-          <h3 className="mt-3 text-xl font-semibold text-white">Inspect portfolio trends</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Compare status distribution, budget concentration and recent delivery rhythm with dedicated charts.
-          </p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cyan-300">
-            View analytics
-            <FiBarChart2 className="h-4 w-4" />
-          </span>
-        </Link>
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[220px]">
+          <Link href="/projects/analytics" aria-label="View analytics" className="absolute inset-0 z-20 rounded-[28px]" />
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div>
+              <p className="projects-bento-kicker text-xs uppercase tracking-[0.22em]">Analytics</p>
+              <h3 className="mt-3 text-xl font-semibold text-white">Inspect portfolio trends</h3>
+            </div>
+            <div>
+              <p className="text-sm leading-6 text-slate-300">
+                Compare status distribution, budget concentration and recent delivery rhythm with dedicated charts.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-300">
+                View analytics
+                <FiBarChart2 className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </ProjectsBentoCard>
 
-        <Link
-          href="/projects/trash"
-          className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl transition hover:border-rose-400/20 hover:bg-slate-950/70"
-        >
-          <p className="text-xs uppercase tracking-[0.22em] text-rose-200/70">Recovery</p>
-          <h3 className="mt-3 text-xl font-semibold text-white">Restore deleted projects</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Review everything in trash before you permanently remove a project and lose the workspace forever.
-          </p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-rose-300">
-            Open trash
-            <FiTrash2 className="h-4 w-4" />
-          </span>
-        </Link>
-      </div>
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[220px]">
+          <Link href="/projects/trash" aria-label="Open trash" className="absolute inset-0 z-20 rounded-[28px]" />
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-rose-300">Recovery</p>
+              <h3 className="mt-3 text-xl font-semibold text-white">Restore deleted projects</h3>
+            </div>
+            <div>
+              <p className="text-sm leading-6 text-slate-300">
+                Review everything in trash before you permanently remove a project and lose the workspace forever.
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-rose-300">
+                Open trash
+                <FiTrash2 className="h-4 w-4" />
+              </span>
+            </div>
+          </div>
+        </ProjectsBentoCard>
+      </ProjectsBentoGrid>
 
       <ProjectCharts summary={summary} />
 
@@ -140,6 +153,7 @@ export default function ProjectsOverviewClient() {
           description="Jump back into projects that were updated most recently."
           projects={summary.recent_projects}
           variant="managed"
+          cardLayout="compact"
           emptyTitle="No recent projects"
           emptyDescription="Create or join a project to start building a recent-activity trail."
           onOpen={(project) => router.push(`/${project.project_code}/dashboard`)}
@@ -150,6 +164,7 @@ export default function ProjectsOverviewClient() {
           description="Deleted projects are kept here until you decide to restore or permanently remove them."
           projects={summary.recent_deleted_projects}
           variant="trash"
+          cardLayout="compact"
           openLabel="Review trash"
           emptyTitle="Trash is clean"
           emptyDescription="Nothing has been moved to trash yet."

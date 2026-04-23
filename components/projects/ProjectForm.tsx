@@ -45,18 +45,18 @@ export default function ProjectForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="theme-panel rounded-[32px] border border-white/10 p-6 backdrop-blur-xl sm:p-8"
+      className="theme-panel projects-bento-panel rounded-[32px] p-6 backdrop-blur-xl sm:p-8"
     >
-      <div className="mb-8 grid gap-4 rounded-[24px] border border-cyan-400/12 bg-cyan-400/[0.03] p-4 sm:grid-cols-3">
-        <div>
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="projects-bento-subpanel rounded-[24px] p-4">
           <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Naming</p>
           <p className="mt-2 text-sm text-slate-200">Use a clear 3-80 character name.</p>
         </div>
-        <div>
+        <div className="projects-bento-subpanel rounded-[24px] p-4">
           <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Dates</p>
           <p className="mt-2 text-sm text-slate-200">Start date cannot be in the past. End date must be on or after start date.</p>
         </div>
-        <div>
+        <div className="projects-bento-subpanel rounded-[24px] p-4">
           <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Budget</p>
           <p className="mt-2 text-sm text-slate-200">Currency must be a 3-letter code and budget cannot be negative.</p>
         </div>
@@ -76,10 +76,10 @@ export default function ProjectForm({
             onBlur={onBlur}
             placeholder="Launch platform migration"
             maxLength={80}
-            className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
+            className={`projects-bento-input w-full rounded-2xl px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
               validationErrors?.project_name
                 ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                : 'focus:border-cyan-400/60'
             }`}
             required
           />
@@ -104,10 +104,10 @@ export default function ProjectForm({
             onBlur={onBlur}
             placeholder="Define the project goals, expected deliverables and team context."
             maxLength={500}
-            className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
+            className={`projects-bento-input w-full rounded-2xl px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
               validationErrors?.description
                 ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                : 'focus:border-cyan-400/60'
             }`}
           />
           <div className="mt-2 flex items-center justify-between text-xs">
@@ -120,11 +120,11 @@ export default function ProjectForm({
 
         {projectCode && (
           <div>
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
-              <FiHash className="h-4 w-4 text-cyan-300" />
-              Project code
-            </label>
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 font-mono text-sm text-cyan-200">
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-200">
+            <FiHash className="h-4 w-4 text-cyan-300" />
+            Project code
+          </label>
+            <div className="projects-bento-input rounded-2xl px-4 py-3 font-mono text-sm text-cyan-200">
               {projectCode}
             </div>
           </div>
@@ -162,10 +162,10 @@ export default function ProjectForm({
               onChange={onChange}
               onBlur={onBlur}
               placeholder="25000"
-              className={`min-w-0 flex-1 rounded-2xl border px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
+              className={`projects-bento-input min-w-0 flex-1 rounded-2xl px-4 py-3 text-white outline-none transition placeholder:text-slate-500 ${
                 validationErrors?.budget
                   ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                  : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                  : 'focus:border-cyan-400/60'
               }`}
             />
             <input
@@ -176,10 +176,10 @@ export default function ProjectForm({
               onBlur={onBlur}
               placeholder="USD"
               maxLength={3}
-              className={`w-24 rounded-2xl border px-4 py-3 uppercase text-white outline-none transition placeholder:text-slate-500 ${
+              className={`projects-bento-input w-24 rounded-2xl px-4 py-3 uppercase text-white outline-none transition placeholder:text-slate-500 ${
                 validationErrors?.currency
                   ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                  : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                  : 'focus:border-cyan-400/60'
               }`}
             />
           </div>
@@ -205,10 +205,10 @@ export default function ProjectForm({
             onChange={onChange}
             onBlur={onBlur}
             min={new Date().toISOString().split('T')[0]}
-            className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+            className={`projects-bento-input w-full rounded-2xl px-4 py-3 text-white outline-none transition ${
               validationErrors?.start_date
                 ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                : 'focus:border-cyan-400/60'
             }`}
           />
           <p className={`mt-2 text-xs ${validationErrors?.start_date ? 'text-rose-200' : 'text-slate-500'}`}>
@@ -228,10 +228,10 @@ export default function ProjectForm({
             onChange={onChange}
             onBlur={onBlur}
             min={formData.start_date || new Date().toISOString().split('T')[0]}
-            className={`w-full rounded-2xl border px-4 py-3 text-white outline-none transition ${
+            className={`projects-bento-input w-full rounded-2xl px-4 py-3 text-white outline-none transition ${
               validationErrors?.target_end_date
                 ? 'border-rose-400/40 bg-rose-500/10 focus:border-rose-300'
-                : 'border-white/10 bg-white/5 focus:border-cyan-400/60 focus:bg-white/7'
+                : 'focus:border-cyan-400/60'
             }`}
           />
           {formData.start_date && formData.target_end_date && formData.target_end_date < formData.start_date ? (

@@ -9,6 +9,7 @@ interface ProjectListProps {
   description: string;
   projects: Project[];
   variant?: 'managed' | 'member' | 'trash';
+  cardLayout?: 'default' | 'compact';
   openLabel?: string;
   emptyTitle: string;
   emptyDescription: string;
@@ -51,6 +52,7 @@ export default function ProjectList({
   description,
   projects,
   variant = 'managed',
+  cardLayout = 'default',
   openLabel,
   emptyTitle,
   emptyDescription,
@@ -68,7 +70,7 @@ export default function ProjectList({
   isRefreshing = false,
 }: ProjectListProps) {
   return (
-    <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30 sm:p-8">
+    <section className="projects-bento-panel rounded-[28px] p-6 backdrop-blur-xl sm:p-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <h3 className="text-xl font-semibold text-white">{title}</h3>
@@ -95,25 +97,35 @@ export default function ProjectList({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="rounded-[26px] border border-white/10 bg-slate-950/55 p-5 sm:p-6"
+              className="projects-bento-subpanel rounded-[26px] p-5 sm:p-6"
             >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 animate-pulse rounded-2xl bg-white/5" />
-                    <div className="flex-1">
-                      <div className="h-5 w-48 animate-pulse rounded bg-white/5" />
-                      <div className="mt-2 h-3 w-32 animate-pulse rounded bg-white/5" />
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(230px,0.55fr)]">
+                <div className="min-w-0 space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 animate-pulse rounded-[18px] bg-white/5" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex gap-2">
+                        <div className="h-7 w-28 animate-pulse rounded-full bg-white/5" />
+                        <div className="h-7 w-24 animate-pulse rounded-full bg-white/5" />
+                      </div>
+                      <div className="mt-3 h-7 w-56 animate-pulse rounded bg-white/5" />
+                      <div className="mt-3 h-10 w-full animate-pulse rounded bg-white/5" />
                     </div>
                   </div>
-                  <div className="mt-4 h-10 w-full animate-pulse rounded bg-white/5" />
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {[1, 2, 3, 4].map((j) => (
+                      <div key={j} className="h-20 animate-pulse rounded-[22px] bg-white/5" />
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
                     {[1, 2, 3].map((j) => (
-                      <div key={j} className="h-14 animate-pulse rounded-2xl bg-white/5" />
+                      <div key={j} className="h-8 w-28 animate-pulse rounded-full bg-white/5" />
                     ))}
                   </div>
                 </div>
-                <div className="hidden h-36 w-44 animate-pulse rounded-2xl bg-white/5 lg:block" />
+                <div className="hidden h-52 animate-pulse rounded-[24px] bg-white/5 xl:block" />
               </div>
             </div>
           ))}
@@ -127,6 +139,7 @@ export default function ProjectList({
               key={project.project_id}
               project={project}
               variant={variant}
+              layout={cardLayout}
               openLabel={openLabel}
               busy={busyProjectId === project.project_id}
               busyLabel={busyAction === 'restore' ? 'Restoring...' : busyAction === 'permanent' ? 'Deleting...' : 'Moving...'}
@@ -142,8 +155,8 @@ export default function ProjectList({
 
       {pagination && (
         <div className="mt-6">
-          <div className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 sm:flex-row">
-            <div className="text-sm text-slate-400">
+          <div className="projects-bento-subpanel flex flex-col items-center justify-between gap-4 rounded-2xl px-5 py-4 sm:flex-row">
+            <div className="projects-bento-muted text-sm">
               {pagination.total > 0 ? (
                 <>
                   Showing{' '}
@@ -178,37 +191,37 @@ export default function ProjectList({
                 <button
                   onClick={() => onPageChange(1)}
                   disabled={!pagination.hasPrevPage}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   First
                 </button>
                 <button
                   onClick={() => onPageChange(pagination.page - 1)}
                   disabled={!pagination.hasPrevPage}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Prev
                 </button>
-                <span className="rounded-lg bg-cyan-400/10 px-3 py-2 text-sm font-medium text-cyan-200">
+                <span className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-cyan-200">
                   {pagination.page} / {pagination.totalPages}
                 </span>
                 <button
                   onClick={() => onPageChange(pagination.page + 1)}
                   disabled={!pagination.hasNextPage}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Next
                 </button>
                 <button
                   onClick={() => onPageChange(pagination.totalPages)}
                   disabled={!pagination.hasNextPage}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Last
                 </button>
               </div>
             ) : (
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-medium text-slate-300">
+              <div className="projects-bento-chip rounded-lg px-3 py-2 text-sm font-medium text-slate-300">
                 Stable portfolio snapshot
               </div>
             )}

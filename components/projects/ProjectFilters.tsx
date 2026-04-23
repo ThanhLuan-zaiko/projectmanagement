@@ -35,9 +35,9 @@ export default function ProjectFilters({
   }, [search]);
 
   return (
-    <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-5 backdrop-blur-xl shadow-xl shadow-slate-950/30">
+    <section className="projects-bento-panel rounded-[28px] p-5 backdrop-blur-xl">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,0.8fr))]">
-        <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <label className="projects-bento-input flex items-center gap-3 rounded-2xl px-4 py-3">
           <FiSearch className="h-4 w-4 text-slate-400" />
           <input
             value={searchDraft}
@@ -51,7 +51,7 @@ export default function ProjectFilters({
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <label className="projects-bento-input flex items-center gap-3 rounded-2xl px-4 py-3">
           <FiFilter className="h-4 w-4 text-slate-400" />
           <select
             value={status}
@@ -67,7 +67,7 @@ export default function ProjectFilters({
           </select>
         </label>
 
-        <label className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <label className="projects-bento-input rounded-2xl px-4 py-3">
           <span className="sr-only">Sort field</span>
           <select
             value={sortBy}
@@ -83,7 +83,7 @@ export default function ProjectFilters({
           </select>
         </label>
 
-        <label className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <label className="projects-bento-input rounded-2xl px-4 py-3">
           <span className="sr-only">Sort direction</span>
           <select
             value={sortOrder}
@@ -98,7 +98,7 @@ export default function ProjectFilters({
         <button
           type="button"
           onClick={onRefresh}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/[0.07]"
+          className="projects-bento-subpanel inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-slate-200 transition hover:border-cyan-400/25"
         >
           <FiRefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>Refresh</span>

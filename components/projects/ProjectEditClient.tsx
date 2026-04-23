@@ -6,6 +6,7 @@ import { FiEdit2 } from 'react-icons/fi';
 import type { Project, ProjectFormData, ProjectFormErrors } from '@/types/project';
 import { validateProjectFormData, validateProjectField, type ValidatableField } from '@/lib/project-validation';
 import ProjectForm from './ProjectForm';
+import { ProjectsBentoCard } from './ProjectsBento';
 import ProjectsPageHeader from './ProjectsPageHeader';
 import { formatProjectBudget, formatProjectDate, getStatusLabel } from './project-utils';
 import { apiFetch } from '@/utils/api-client';
@@ -180,27 +181,29 @@ export default function ProjectEditClient({ projectId }: ProjectEditClientProps)
           />
         </div>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <h3 className="text-xl font-semibold text-white">Project snapshot</h3>
-          <div className="mt-5 space-y-4 text-sm">
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Status</p>
-              <p className="mt-2 text-white capitalize">{getStatusLabel(project.status)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Budget</p>
-              <p className="mt-2 text-white">{formatProjectBudget(project)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Created</p>
-              <p className="mt-2 text-white">{formatProjectDate(project.created_at)}</p>
-            </div>
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Updated</p>
-              <p className="mt-2 text-white">{formatProjectDate(project.updated_at)}</p>
+        <ProjectsBentoCard className="min-h-[360px]">
+          <div className="flex h-full flex-col">
+            <h3 className="text-xl font-semibold text-white">Project snapshot</h3>
+            <div className="mt-5 space-y-4 text-sm">
+              <div className="projects-bento-chip rounded-2xl px-4 py-3">
+                <p className="projects-bento-muted text-xs uppercase tracking-[0.18em]">Status</p>
+                <p className="mt-2 text-white capitalize">{getStatusLabel(project.status)}</p>
+              </div>
+              <div className="projects-bento-chip rounded-2xl px-4 py-3">
+                <p className="projects-bento-muted text-xs uppercase tracking-[0.18em]">Budget</p>
+                <p className="mt-2 text-white">{formatProjectBudget(project)}</p>
+              </div>
+              <div className="projects-bento-chip rounded-2xl px-4 py-3">
+                <p className="projects-bento-muted text-xs uppercase tracking-[0.18em]">Created</p>
+                <p className="mt-2 text-white">{formatProjectDate(project.created_at)}</p>
+              </div>
+              <div className="projects-bento-chip rounded-2xl px-4 py-3">
+                <p className="projects-bento-muted text-xs uppercase tracking-[0.18em]">Updated</p>
+                <p className="mt-2 text-white">{formatProjectDate(project.updated_at)}</p>
+              </div>
             </div>
           </div>
-        </section>
+        </ProjectsBentoCard>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import Image from 'next/image';
 import { FiLock, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import ChangePasswordModal from './ChangePasswordModal';
@@ -15,15 +15,29 @@ interface UserMenuProps {
     role: string;
     avatar_url?: string;
   } | null;
+  dropdownMode?: 'anchored' | 'fixed';
+  fixedDesktopTop?: number;
+  fixedDesktopRight?: number;
+  fixedMobileTop?: number;
+  fixedMobileInset?: number;
+  dropdownWidth?: number;
 }
 
-export default function UserMenu({ user }: UserMenuProps) {
+export default function UserMenu({
+  user,
+  dropdownMode = 'anchored',
+  fixedDesktopTop = 112,
+  fixedDesktopRight = 24,
+  fixedMobileTop = 88,
+  fixedMobileInset = 16,
+  dropdownWidth = 288,
+}: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [mobileDropdownTop, setMobileDropdownTop] = useState<number | null>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -41,28 +55,83 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   useEffect(() => {
     if (!isOpen) {
+      setDropdownStyle({});
       return;
     }
 
     const updatePosition = () => {
-      if (!triggerRef.current || window.innerWidth >= 640) {
-        setMobileDropdownTop(null);
+      if (!triggerRef.current) {
         return;
       }
 
       const rect = triggerRef.current.getBoundingClientRect();
-      setMobileDropdownTop(rect.bottom + 10);
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const edgePadding = 16;
+
+      if (dropdownMode === 'fixed') {
+        if (viewportWidth < 640) {
+          setDropdownStyle({
+            top: Math.min(fixedMobileTop, viewportHeight - edgePadding),
+            left: fixedMobileInset,
+            right: fixedMobileInset,
+            width: 'auto',
+            maxWidth: `calc(100vw - ${fixedMobileInset * 2}px)`,
+          });
+          return;
+        }
+
+        setDropdownStyle({
+          top: Math.min(fixedDesktopTop, viewportHeight - edgePadding),
+          right: fixedDesktopRight,
+          width: Math.min(dropdownWidth, viewportWidth - fixedDesktopRight - edgePadding),
+        });
+        return;
+      }
+
+      if (viewportWidth < 640) {
+        setDropdownStyle({
+          top: Math.min(rect.bottom + 10, viewportHeight - edgePadding),
+          left: edgePadding,
+          right: edgePadding,
+          width: 'auto',
+          maxWidth: `calc(100vw - ${edgePadding * 2}px)`,
+        });
+        return;
+      }
+
+      const right = Math.max(edgePadding, viewportWidth - rect.right);
+      const availableWidth = viewportWidth - right - edgePadding;
+
+      setDropdownStyle({
+        top: Math.min(rect.bottom + 10, viewportHeight - edgePadding),
+        right,
+        width: Math.min(dropdownWidth, availableWidth),
+      });
     };
 
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+
+    if (dropdownMode === 'anchored') {
+      window.addEventListener('scroll', updatePosition, true);
+    }
 
     return () => {
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      if (dropdownMode === 'anchored') {
+        window.removeEventListener('scroll', updatePosition, true);
+      }
     };
-  }, [isOpen]);
+  }, [
+    dropdownMode,
+    dropdownWidth,
+    fixedDesktopRight,
+    fixedDesktopTop,
+    fixedMobileInset,
+    fixedMobileTop,
+    isOpen,
+  ]);
 
   const handleLogout = async () => {
     try {
@@ -92,7 +161,7 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   return (
     <>
-      <div className="relative z-[999]" ref={menuRef}>
+      <div className={`relative ${isOpen ? 'z-[1300]' : 'z-[999]'}`} ref={menuRef}>
         <button
           ref={triggerRef}
           onClick={() => setIsOpen(!isOpen)}
@@ -136,8 +205,8 @@ export default function UserMenu({ user }: UserMenuProps) {
         {/* Dropdown Menu */}
         {isOpen && (
           <div
-            className="fixed left-4 right-4 z-[999] overflow-hidden rounded-xl border border-slate-700/50 bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl shadow-black/50 sm:absolute sm:left-auto sm:right-0 sm:mt-2 sm:w-64"
-            style={mobileDropdownTop ? { top: mobileDropdownTop } : undefined}
+            className="fixed z-[1400] overflow-hidden rounded-2xl border border-slate-700/60 bg-gradient-to-b from-slate-800 via-slate-900 to-slate-950 shadow-2xl shadow-black/55 backdrop-blur-xl"
+            style={dropdownStyle}
           >
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-slate-700/50">

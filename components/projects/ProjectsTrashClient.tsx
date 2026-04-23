@@ -9,6 +9,7 @@ import type { Project } from '@/types/project';
 import Modal from '@/components/ui/Modal';
 import ProjectFilters from './ProjectFilters';
 import ProjectList from './ProjectList';
+import { ProjectsBentoCard, ProjectsBentoGrid } from './ProjectsBento';
 import ProjectsPageHeader from './ProjectsPageHeader';
 
 export default function ProjectsTrashClient() {
@@ -100,20 +101,32 @@ export default function ProjectsTrashClient() {
         onRefresh={refreshTrash}
       />
 
-      <section className="rounded-[28px] border border-rose-400/15 bg-rose-500/[0.05] p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-        <p className="text-xs uppercase tracking-[0.22em] text-rose-200/70">Recovery rules</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-slate-200">
-            Restore returns the project to the main workspace immediately.
+      <ProjectsBentoGrid gridClassName="grid-cols-1 xl:grid-cols-6">
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[180px]">
+          <div className="flex h-full flex-col justify-between gap-5">
+            <p className="text-xs uppercase tracking-[0.22em] text-rose-300">Recovery rules</p>
+            <p className="text-sm leading-6 text-slate-300">
+              Restore returns the project to the main workspace immediately.
+            </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-slate-200">
-            Permanent delete is irreversible and removes the project record completely.
+        </ProjectsBentoCard>
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[180px]">
+          <div className="flex h-full flex-col justify-between gap-5">
+            <p className="text-xs uppercase tracking-[0.22em] text-rose-300">Permanent delete</p>
+            <p className="text-sm leading-6 text-slate-300">
+              Permanent delete is irreversible and removes the project record completely.
+            </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-3 text-sm text-slate-200">
-            Only owned projects appear here, so recovery remains under owner control.
+        </ProjectsBentoCard>
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[180px]">
+          <div className="flex h-full flex-col justify-between gap-5">
+            <p className="text-xs uppercase tracking-[0.22em] text-rose-300">Owner control</p>
+            <p className="text-sm leading-6 text-slate-300">
+              Only owned projects appear here, so recovery remains under owner control.
+            </p>
           </div>
-        </div>
-      </section>
+        </ProjectsBentoCard>
+      </ProjectsBentoGrid>
 
       <ProjectList
         title="Deleted projects"

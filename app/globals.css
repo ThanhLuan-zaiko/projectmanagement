@@ -14,10 +14,31 @@
     linear-gradient(135deg, #020617 0%, #0f172a 42%, #082f49 100%);
   --theme-projects-grid-color: rgba(255, 255, 255, 0.06);
   --theme-projects-grid-opacity: 0.2;
+  --theme-projects-grid-overlay: radial-gradient(circle at 18% 12%, rgba(167, 139, 250, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.06), rgba(2, 6, 23, 0.34));
+  --theme-projects-menu-backdrop: radial-gradient(circle at top, rgba(14, 165, 233, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.14), rgba(2, 6, 23, 0.54));
   --theme-projects-header-bg: color-mix(in oklab, var(--color-slate-950) 60%, transparent);
   --theme-projects-surface-bg: color-mix(in oklab, var(--color-slate-950) 55%, transparent);
   --theme-projects-surface-hover: color-mix(in oklab, var(--color-slate-950) 70%, transparent);
   --theme-projects-shadow: 0 24px 60px rgba(2, 6, 23, 0.3);
+  --theme-projects-bento-bg: linear-gradient(180deg, rgba(22, 18, 32, 0.94), rgba(12, 10, 20, 0.96));
+  --theme-projects-bento-bg-hover: linear-gradient(180deg, rgba(30, 24, 44, 0.96), rgba(14, 11, 22, 0.98));
+  --theme-projects-bento-subpanel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  --theme-projects-bento-border: rgba(124, 101, 190, 0.26);
+  --theme-projects-bento-border-strong: rgba(124, 101, 190, 0.42);
+  --theme-projects-bento-shadow: 0 26px 62px rgba(7, 5, 12, 0.34);
+  --theme-projects-bento-inner: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 44%, transparent 72%);
+  --theme-projects-bento-chip-bg: rgba(255, 255, 255, 0.04);
+  --theme-projects-bento-chip-border: rgba(255, 255, 255, 0.08);
+  --theme-projects-bento-input-bg: rgba(255, 255, 255, 0.035);
+  --theme-projects-bento-input-border: rgba(148, 163, 184, 0.16);
+  --theme-projects-bento-input-focus: rgba(96, 165, 250, 0.42);
+  --theme-projects-bento-input-ring: rgba(96, 165, 250, 0.14);
+  --theme-projects-bento-kicker: #93c5fd;
+  --theme-projects-bento-muted: #94a3b8;
+  --theme-projects-bento-copy: #cbd5e1;
+  --theme-projects-bento-value: #f8fafc;
   --theme-modal-overlay: rgba(0, 0, 0, 0.7);
   --theme-modal-surface: var(--color-slate-800);
   --theme-modal-header: linear-gradient(90deg, var(--color-slate-800), color-mix(in oklab, var(--color-slate-700) 55%, var(--color-slate-800)), var(--color-slate-800));
@@ -156,10 +177,30 @@
   --theme-projects-shell-bg: linear-gradient(180deg, #eef6ff 0%, #f8fbff 32%, #f8fafc 100%);
   --theme-projects-grid-color: rgba(148, 163, 184, 0.12);
   --theme-projects-grid-opacity: 1;
+  --theme-projects-grid-overlay: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(226, 232, 240, 0.22));
+  --theme-projects-menu-backdrop: radial-gradient(circle at top, rgba(59, 130, 246, 0.05), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(203, 213, 225, 0.12));
   --theme-projects-header-bg: rgba(255, 255, 255, 0.88);
   --theme-projects-surface-bg: rgba(255, 255, 255, 0.9);
   --theme-projects-surface-hover: rgba(255, 255, 255, 0.98);
   --theme-projects-shadow: 0 22px 52px rgba(148, 163, 184, 0.18);
+  --theme-projects-bento-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(236, 243, 249, 0.78));
+  --theme-projects-bento-bg-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 240, 247, 0.88));
+  --theme-projects-bento-subpanel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(226, 232, 240, 0.24));
+  --theme-projects-bento-border: rgba(148, 163, 184, 0.28);
+  --theme-projects-bento-border-strong: rgba(99, 102, 241, 0.24);
+  --theme-projects-bento-shadow: 0 24px 58px rgba(100, 116, 139, 0.16);
+  --theme-projects-bento-inner: linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08) 40%, transparent 72%);
+  --theme-projects-bento-chip-bg: rgba(255, 255, 255, 0.34);
+  --theme-projects-bento-chip-border: rgba(255, 255, 255, 0.38);
+  --theme-projects-bento-input-bg: rgba(255, 255, 255, 0.42);
+  --theme-projects-bento-input-border: rgba(148, 163, 184, 0.26);
+  --theme-projects-bento-input-focus: rgba(79, 70, 229, 0.36);
+  --theme-projects-bento-input-ring: rgba(79, 70, 229, 0.1);
+  --theme-projects-bento-kicker: #1d4ed8;
+  --theme-projects-bento-muted: #475569;
+  --theme-projects-bento-copy: #334155;
+  --theme-projects-bento-value: #0f172a;
   --theme-modal-overlay: rgba(15, 23, 42, 0.35);
   --theme-modal-surface: rgba(255, 255, 255, 0.98);
   --theme-modal-header: linear-gradient(90deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98), rgba(255, 255, 255, 0.98));
@@ -287,9 +328,200 @@ body {
   background-size: 42px 42px;
 }
 
+.theme-projects-grid-overlay {
+  background: var(--theme-projects-grid-overlay);
+}
+
+.project-bubble-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--theme-projects-menu-backdrop);
+  backdrop-filter: blur(12px) saturate(118%);
+}
+
 .theme-projects-header {
   background: var(--theme-projects-header-bg);
   box-shadow: var(--theme-projects-shadow);
+}
+
+.theme-projects-tabs-shell {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.project-bubble-nav .logo-bubble,
+.project-bubble-nav .toggle-bubble {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 22px 50px rgba(2, 6, 23, 0.22);
+}
+
+.project-bubble-nav .logo-bubble::before,
+.project-bubble-nav .toggle-bubble::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04) 40%, transparent 75%);
+}
+
+.project-bubble-nav .logo-bubble > *,
+.project-bubble-nav .toggle-bubble > * {
+  position: relative;
+  z-index: 1;
+}
+
+.project-bubble-overlay .pill-link {
+  border: 1px solid rgba(226, 232, 240, 0.78);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
+.project-bubble-overlay .pill-link[data-active='true'] {
+  box-shadow:
+    0 24px 52px rgba(15, 23, 42, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.82),
+    0 0 44px rgba(139, 92, 246, 0.2);
+}
+
+:root[data-theme='light'] .theme-projects-tabs-shell {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.24));
+}
+
+:root[data-theme='light'] .project-bubble-nav .logo-bubble,
+:root[data-theme='light'] .project-bubble-nav .toggle-bubble {
+  border-color: rgba(148, 163, 184, 0.26);
+  box-shadow: 0 18px 38px rgba(148, 163, 184, 0.18);
+}
+
+:root[data-theme='light'] .project-bubble-overlay .pill-link {
+  border-color: rgba(226, 232, 240, 0.88);
+  box-shadow:
+    0 18px 40px rgba(148, 163, 184, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62);
+}
+
+:root[data-theme='light'] .project-bubble-overlay::before {
+  backdrop-filter: blur(10px) saturate(108%);
+}
+
+.projects-bento-scope .magic-bento-card,
+.projects-bento-card {
+  --magic-bento-card-bg: var(--theme-projects-bento-bg);
+  --magic-bento-border: var(--theme-projects-bento-border);
+  --magic-bento-shadow: var(--theme-projects-bento-shadow);
+  --magic-bento-text: var(--theme-projects-bento-value);
+  background: var(--theme-projects-bento-bg);
+  border-color: var(--theme-projects-bento-border);
+  box-shadow: var(--theme-projects-bento-shadow);
+}
+
+.projects-bento-scope .magic-bento-card::before,
+.projects-bento-card::before,
+.projects-bento-panel::before,
+.projects-bento-subpanel::before,
+.projects-bento-chip::before,
+.projects-bento-input::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--theme-projects-bento-inner);
+  opacity: 0.92;
+}
+
+.projects-bento-scope .magic-bento-card:hover,
+.projects-bento-card:hover {
+  background: var(--theme-projects-bento-bg-hover);
+  border-color: var(--theme-projects-bento-border-strong);
+}
+
+.projects-bento-scope .magic-bento-card__label,
+.projects-bento-card .magic-bento-card__label {
+  color: var(--theme-projects-bento-kicker);
+  font-size: 0.7rem;
+}
+
+.projects-bento-scope .magic-bento-card__title,
+.projects-bento-card .magic-bento-card__title {
+  color: var(--theme-projects-bento-value);
+}
+
+.projects-bento-scope .magic-bento-card__description,
+.projects-bento-card .magic-bento-card__description {
+  color: var(--theme-projects-bento-copy);
+}
+
+.projects-bento-panel,
+.projects-bento-subpanel,
+.projects-bento-chip,
+.projects-bento-input {
+  position: relative;
+  overflow: hidden;
+}
+
+.projects-bento-panel {
+  background: var(--theme-projects-bento-bg);
+  border: 1px solid var(--theme-projects-bento-border);
+  box-shadow: var(--theme-projects-bento-shadow);
+}
+
+.theme-hero-panel.projects-bento-panel {
+  background: var(--theme-hero-surface);
+  box-shadow: var(--theme-hero-shadow);
+}
+
+.projects-bento-subpanel,
+.projects-bento-chip,
+.projects-bento-input {
+  background: var(--theme-projects-bento-subpanel-bg);
+  border: 1px solid var(--theme-projects-bento-chip-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.projects-bento-panel > *,
+.projects-bento-subpanel > *,
+.projects-bento-chip > *,
+.projects-bento-input > * {
+  position: relative;
+  z-index: 1;
+}
+
+.projects-bento-input {
+  background: var(--theme-projects-bento-input-bg);
+  border-color: var(--theme-projects-bento-input-border);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.projects-bento-input:focus-within {
+  border-color: var(--theme-projects-bento-input-focus);
+  box-shadow: 0 0 0 4px var(--theme-projects-bento-input-ring);
+}
+
+.projects-bento-kicker {
+  color: var(--theme-projects-bento-kicker);
+}
+
+.projects-bento-muted {
+  color: var(--theme-projects-bento-muted);
+}
+
+.projects-bento-copy {
+  color: var(--theme-projects-bento-copy);
+}
+
+.projects-bento-value {
+  color: var(--theme-projects-bento-value);
 }
 
 .theme-modal-overlay {

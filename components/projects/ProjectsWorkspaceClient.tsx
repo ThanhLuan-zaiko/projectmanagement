@@ -11,6 +11,7 @@ import type { Project } from '@/types/project';
 import Modal from '@/components/ui/Modal';
 import ProjectFilters from './ProjectFilters';
 import ProjectList from './ProjectList';
+import { ProjectsBentoCard, ProjectsBentoGrid } from './ProjectsBento';
 import ProjectsPageHeader from './ProjectsPageHeader';
 
 export default function ProjectsWorkspaceClient() {
@@ -125,79 +126,93 @@ export default function ProjectsWorkspaceClient() {
         onRefresh={refreshAll}
       />
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300">
-              <FiLayers className="h-5 w-5" />
+      <ProjectsBentoGrid gridClassName="grid-cols-1 xl:grid-cols-6">
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[210px]">
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-300">
+                <FiLayers className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="projects-bento-kicker text-xs uppercase tracking-[0.2em]">Owned Scope</p>
+                <h3 className="mt-1 text-2xl font-semibold text-white">{ownedProjectsState.pagination.total}</h3>
+              </div>
             </div>
+            <p className="text-sm leading-6 text-slate-300">
+              Projects you can govern directly, edit aggressively, archive, restore and route into dashboards.
+            </p>
+          </div>
+        </ProjectsBentoCard>
+
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[210px]">
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                <FiShield className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">Collaborating</p>
+                <h3 className="mt-1 text-2xl font-semibold text-white">{memberProjectsState.pagination.total}</h3>
+              </div>
+            </div>
+            <p className="text-sm leading-6 text-slate-300">
+              Joined workspaces remain separated from owned projects so shared execution is visible without muddying control.
+            </p>
+          </div>
+        </ProjectsBentoCard>
+
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[210px]">
+          <div className="flex h-full flex-col justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-400/10 text-violet-300">
+                <FiBarChart2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Filter State</p>
+                <h3 className="mt-1 text-lg font-semibold capitalize text-white">
+                  {(urlFilters.filters.status || 'all').replace('_', ' ')}
+                </h3>
+              </div>
+            </div>
+            <p className="text-sm leading-6 text-slate-300">
+              Search, sort and pagination state stay visible so portfolio reviews feel deliberate instead of ad hoc.
+            </p>
+          </div>
+        </ProjectsBentoCard>
+      </ProjectsBentoGrid>
+
+      <ProjectsBentoGrid gridClassName="grid-cols-1 xl:grid-cols-6">
+        <ProjectsBentoCard className="xl:col-span-4 min-h-[220px]">
+          <div className="flex h-full flex-col justify-between gap-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/70">Owned Scope</p>
-              <h3 className="mt-1 text-2xl font-semibold text-white">{ownedProjectsState.pagination.total}</h3>
+              <p className="projects-bento-kicker text-xs uppercase tracking-[0.22em]">Operating posture</p>
+              <h3 className="mt-3 text-xl font-semibold text-white">Keep live projects moving and stale ones recoverable.</h3>
             </div>
+            <p className="text-sm leading-6 text-slate-300">
+              This workspace is optimized for day-to-day portfolio operations: search quickly, edit clean metadata, and move inactive work to trash without losing recovery options.
+            </p>
           </div>
-          <p className="mt-4 text-sm leading-6 text-slate-300">
-            Projects you can govern directly, edit aggressively, archive, restore and route into dashboards.
-          </p>
-        </section>
+        </ProjectsBentoCard>
 
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
-              <FiShield className="h-5 w-5" />
-            </div>
+        <ProjectsBentoCard className="xl:col-span-2 min-h-[220px]">
+          <div className="flex h-full flex-col justify-between gap-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/70">Collaborating</p>
-              <h3 className="mt-1 text-2xl font-semibold text-white">{memberProjectsState.pagination.total}</h3>
+              <p className="projects-bento-kicker text-xs uppercase tracking-[0.22em]">Current filter state</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="projects-bento-chip rounded-full px-3 py-1 text-xs text-slate-200">
+                Search: {urlFilters.search || 'Any'}
+              </span>
+              <span className="projects-bento-chip rounded-full px-3 py-1 text-xs text-slate-200">
+                Status: {urlFilters.filters.status || 'all'}
+              </span>
+              <span className="projects-bento-chip rounded-full px-3 py-1 text-xs text-slate-200">
+                Order: {urlFilters.sortOrder}
+              </span>
             </div>
           </div>
-          <p className="mt-4 text-sm leading-6 text-slate-300">
-            Joined workspaces remain separated from owned projects so shared execution is visible without muddying control.
-          </p>
-        </section>
-
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300">
-              <FiBarChart2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-violet-200/70">Filter State</p>
-              <h3 className="mt-1 text-lg font-semibold capitalize text-white">
-                {(urlFilters.filters.status || 'all').replace('_', ' ')}
-              </h3>
-            </div>
-          </div>
-          <p className="mt-4 text-sm leading-6 text-slate-300">
-            Search, sort and pagination state stay visible so portfolio reviews feel deliberate instead of ad hoc.
-          </p>
-        </section>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Operating posture</p>
-          <h3 className="mt-3 text-xl font-semibold text-white">Keep live projects moving and stale ones recoverable.</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            This workspace is optimized for day-to-day portfolio operations: search quickly, edit clean metadata, and move inactive work to trash without losing recovery options.
-          </p>
-        </section>
-
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-          <p className="text-xs uppercase tracking-[0.22em] text-cyan-200/70">Current filter state</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-200">
-              Search: {urlFilters.search || 'Any'}
-            </span>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-200">
-              Status: {urlFilters.filters.status || 'all'}
-            </span>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-200">
-              Order: {urlFilters.sortOrder}
-            </span>
-          </div>
-        </section>
-      </div>
+        </ProjectsBentoCard>
+      </ProjectsBentoGrid>
 
       <ProjectList
         title="Owned projects"

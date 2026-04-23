@@ -1,4 +1,5 @@
 export { default as JoinProjectCard } from './JoinProjectCard';
+export { ProjectsBentoCard, ProjectsBentoGrid } from './ProjectsBento';
 export { default as ProjectCard } from './ProjectCard';
 export { default as ProjectCharts } from './ProjectCharts';
 export { default as ProjectEditClient } from './ProjectEditClient';

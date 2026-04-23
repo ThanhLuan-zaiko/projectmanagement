@@ -7,6 +7,7 @@ import type { ProjectFormData, ProjectFormErrors } from '@/types/project';
 import { validateProjectCode, validateProjectField, validateProjectFormData, type ValidatableField } from '@/lib/project-validation';
 import JoinProjectCard from './JoinProjectCard';
 import ProjectForm from './ProjectForm';
+import { ProjectsBentoCard } from './ProjectsBento';
 import ProjectsPageHeader from './ProjectsPageHeader';
 import { apiFetch } from '@/utils/api-client';
 
@@ -182,33 +183,38 @@ export default function ProjectsCreateClient() {
             onSubmit={handleJoin}
           />
 
-          <section className="rounded-[28px] border border-white/10 bg-slate-950/55 p-6 backdrop-blur-xl shadow-xl shadow-slate-950/30">
-            <h3 className="text-xl font-semibold text-white">What this workspace adds</h3>
-            <div className="mt-5 space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400/12 text-cyan-300">
-                  <FiLayers className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-medium text-white">Structured CRUD flow</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">
-                    Active projects, analytics and trash recovery each live on their own route to keep the module maintainable.
-                  </p>
-                </div>
+          <ProjectsBentoCard className="min-h-[300px]">
+            <div className="flex h-full flex-col gap-6">
+              <div>
+                <p className="projects-bento-kicker text-xs uppercase tracking-[0.22em]">What this workspace adds</p>
+                <h3 className="mt-3 text-xl font-semibold text-white">A cleaner operating shape for project work.</h3>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-300">
-                  <FiCompass className="h-5 w-5" />
+              <div className="space-y-4">
+                <div className="projects-bento-chip flex items-start gap-3 rounded-[22px] px-4 py-4">
+                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400/12 text-cyan-300">
+                    <FiLayers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Structured CRUD flow</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Active projects, analytics and trash recovery each live on their own route to keep the module maintainable.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-white">Fast project access</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-300">
-                    Newly created projects add the owner to the team automatically, so they appear correctly across your workspace.
-                  </p>
+                <div className="projects-bento-chip flex items-start gap-3 rounded-[22px] px-4 py-4">
+                  <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/12 text-emerald-300">
+                    <FiCompass className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Fast project access</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-300">
+                      Newly created projects add the owner to the team automatically, so they appear correctly across your workspace.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
+          </ProjectsBentoCard>
         </div>
       </div>
     </div>

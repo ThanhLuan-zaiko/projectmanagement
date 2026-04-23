@@ -1,17 +1,48 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { FiBarChart2, FiFolderPlus, FiGrid, FiLayers, FiTrash2 } from 'react-icons/fi';
+import { useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { FiLayers } from 'react-icons/fi';
+import BubbleMenu, { type BubbleMenuItem } from '@/components/ui/BubbleMenu';
+import { useTheme } from '@/components/theme/ThemeProvider';
 
 const tabs = [
-  { href: '/projects', label: 'Overview', icon: FiGrid },
-  { href: '/projects/workspace', label: 'Workspace', icon: FiLayers },
-  { href: '/projects/create', label: 'Create & Join', icon: FiFolderPlus },
-  { href: '/projects/analytics', label: 'Analytics', icon: FiBarChart2 },
-  { href: '/projects/trash', label: 'Trash', icon: FiTrash2 },
-];
+  {
+    href: '/projects',
+    label: 'overview',
+    ariaLabel: 'Project overview',
+    rotation: -7,
+    hoverStyles: { bgColor: '#0ea5e9', textColor: '#ffffff' },
+  },
+  {
+    href: '/projects/workspace',
+    label: 'workspace',
+    ariaLabel: 'Project workspace',
+    rotation: 6,
+    hoverStyles: { bgColor: '#14b8a6', textColor: '#062c30' },
+  },
+  {
+    href: '/projects/create',
+    label: 'create',
+    ariaLabel: 'Create or join a project',
+    rotation: -5,
+    hoverStyles: { bgColor: '#8b5cf6', textColor: '#ffffff' },
+  },
+  {
+    href: '/projects/analytics',
+    label: 'analytics',
+    ariaLabel: 'Project analytics',
+    rotation: 7,
+    hoverStyles: { bgColor: '#f59e0b', textColor: '#111827' },
+  },
+  {
+    href: '/projects/trash',
+    label: 'trash',
+    ariaLabel: 'Project trash',
+    rotation: -6,
+    hoverStyles: { bgColor: '#ef4444', textColor: '#ffffff' },
+  },
+] as const;
 
 function isProjectsTabActive(pathname: string | null, href: string) {
   if (!pathname) {
@@ -31,97 +62,84 @@ function isProjectsTabActive(pathname: string | null, href: string) {
 
 export default function ProjectsTabs() {
   const pathname = usePathname();
-  const router = useRouter();
-  const tabRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
-  const prefetchedHrefsRef = useRef(new Set<string>());
-  const [pendingTabHref, setPendingTabHref] = useState<string | null>(null);
-  const [pressedTabHref, setPressedTabHref] = useState<string | null>(null);
+  const { theme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isLight = theme === 'light';
 
-  const resolvedActiveTabHref = useMemo(
+  const activeHref = useMemo(
     () => tabs.find((tab) => isProjectsTabActive(pathname, tab.href))?.href ?? '/projects',
     [pathname]
   );
-  const optimisticTabHref =
-    pendingTabHref && pathname !== pendingTabHref ? pendingTabHref : null;
-  const activeTabHref = pressedTabHref ?? optimisticTabHref ?? resolvedActiveTabHref;
 
-  useEffect(() => {
-    const prefersInstantScroll =
-      window.matchMedia('(pointer: coarse)').matches ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const items = useMemo<BubbleMenuItem[]>(
+    () =>
+      tabs.map((tab) => ({
+        ...tab,
+        isActive: tab.href === activeHref,
+      })),
+    [activeHref]
+  );
 
-    tabRefs.current[resolvedActiveTabHref]?.scrollIntoView({
-      behavior: prefersInstantScroll ? 'auto' : 'smooth',
-      block: 'nearest',
-      inline: 'center',
-    });
-  }, [resolvedActiveTabHref]);
+  const closedNavStyle = {
+    position: 'relative',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
+    paddingLeft: 0,
+    paddingRight: 0,
+    transform: 'none',
+  } as const;
 
-  useEffect(() => {
-    const prefetchRoutes = () => {
-      tabs.forEach((tab) => {
-        if (prefetchedHrefsRef.current.has(tab.href)) {
-          return;
-        }
+  const openNavStyle = {
+    position: 'fixed',
+    top: '1.1rem',
+    left: '50%',
+    right: 'auto',
+    width: 'min(calc(100vw - 2.5rem), 68rem)',
+    paddingLeft: 0,
+    paddingRight: 0,
+    transform: 'translateX(-50%)',
+  } as const;
 
-        prefetchedHrefsRef.current.add(tab.href);
-        router.prefetch(tab.href);
-      });
-    };
-
-    if ('requestIdleCallback' in window) {
-      const idleId = window.requestIdleCallback(prefetchRoutes, { timeout: 1200 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timeoutId = globalThis.setTimeout(prefetchRoutes, 180);
-    return () => globalThis.clearTimeout(timeoutId);
-  }, [router]);
+  const overlayStyle = {
+    overflow: 'visible',
+    alignItems: 'flex-start',
+    paddingTop: '7.4rem',
+    paddingBottom: '0.5rem',
+  } as const;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-900/55 p-1.5 backdrop-blur-xl shadow-2xl shadow-slate-950/30">
-      <nav
-        className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        aria-label="Project sections"
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = tab.href === activeTabHref;
-
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              prefetch={true}
-              data-speculate="prefetch"
-              ref={(node) => {
-                tabRefs.current[tab.href] = node;
-              }}
-              onPointerDown={() => setPressedTabHref(tab.href)}
-              onPointerCancel={() => setPressedTabHref((currentValue) => (currentValue === tab.href ? null : currentValue))}
-              onPointerLeave={() => setPressedTabHref((currentValue) => (currentValue === tab.href ? null : currentValue))}
-              onClick={() => {
-                setPendingTabHref(tab.href);
-                setPressedTabHref(null);
-              }}
-              aria-current={isActive ? 'page' : undefined}
-              className={`group relative flex min-w-fit items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium whitespace-nowrap transition-all duration-200 ease-out ${
-                isActive
-                  ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span
-                className={`absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-gradient-to-r from-white/70 to-cyan-200 transition-opacity duration-200 ${
-                  isActive ? 'opacity-100' : 'opacity-0'
-                }`}
-              />
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+    <div className="relative min-h-14 overflow-visible">
+      <BubbleMenu
+        logo={
+          <span className="inline-flex items-center gap-2 text-sm font-semibold tracking-[0.01em]">
+            <FiLayers className="h-4 w-4" />
+            <span>{activeHref === '/projects' ? 'Project nav' : 'Sections'}</span>
+          </span>
+        }
+        items={items}
+        activeHref={activeHref}
+        menuAriaLabel="Toggle project navigation"
+        menuBg="#ffffff"
+        menuContentColor="#111111"
+        controlBg={isLight ? 'rgba(255, 255, 255, 0.7)' : 'rgba(9, 12, 22, 0.84)'}
+        controlContentColor={isLight ? '#0f172a' : '#f8fafc'}
+        useFixedPosition={false}
+        overlayFixed
+        onMenuClick={setIsMenuOpen}
+        className="project-bubble-nav top-0"
+        overlayClassName="project-bubble-overlay"
+        overlayStyle={overlayStyle}
+        contentMaxWidth="56rem"
+        pillMinHeight="92px"
+        pillPadding="clamp(0.65rem, 1.15vw, 1.5rem) 0"
+        pillFontSize="clamp(1.05rem, 2vw, 2.45rem)"
+        style={isMenuOpen ? openNavStyle : closedNavStyle}
+        animationEase="back.out(1.5)"
+        animationDuration={0.5}
+        staggerDelay={0.12}
+      />
     </div>
   );
 }
