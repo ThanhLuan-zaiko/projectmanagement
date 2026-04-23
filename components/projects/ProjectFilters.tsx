@@ -5,6 +5,7 @@ import { FiFilter, FiRefreshCw, FiSearch } from 'react-icons/fi';
 
 interface ProjectFiltersProps {
   search: string;
+  searchPlaceholder?: string;
   status: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
@@ -18,6 +19,7 @@ interface ProjectFiltersProps {
 
 export default function ProjectFilters({
   search,
+  searchPlaceholder = 'Search by project name, code or description',
   status,
   sortBy,
   sortOrder,
@@ -46,7 +48,7 @@ export default function ProjectFilters({
               setSearchDraft(nextValue);
               onSearchChange(nextValue);
             }}
-            placeholder="Search by project name, code or description"
+            placeholder={searchPlaceholder}
             className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
           />
         </label>

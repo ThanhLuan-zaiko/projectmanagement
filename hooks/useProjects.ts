@@ -18,6 +18,7 @@ export interface PaginationInfo {
 interface UseProjectsOptions {
   scope?: 'owned' | 'member' | 'all';
   search?: string;
+  searchMode?: 'all' | 'name';
   status?: string;
   page?: number;
   limit?: number;
@@ -50,6 +51,7 @@ function createDefaultPagination(limit: number): PaginationInfo {
 function buildProjectsParams({
   scope,
   search,
+  searchMode,
   status,
   page,
   limit,
@@ -65,6 +67,7 @@ function buildProjectsParams({
     sort_by: sortBy,
     sort_order: sortOrder,
     ...(search && { search }),
+    ...(searchMode && searchMode !== 'all' && { search_mode: searchMode }),
     ...(status && status !== 'all' && { status }),
     ...(includeDeleted && { include_deleted: 'true' }),
     ...(deletedOnly && { deleted_only: 'true' }),
@@ -99,6 +102,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
   const {
     scope = 'all',
     search = '',
+    searchMode = 'all',
     status = 'all',
     page = 1,
     limit = 6,
@@ -112,6 +116,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
     () => ({
       scope,
       search,
+      searchMode,
       status,
       page,
       limit,
@@ -120,7 +125,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       sortBy,
       sortOrder,
     }),
-    [scope, search, status, page, limit, includeDeleted, deletedOnly, sortBy, sortOrder]
+    [scope, search, searchMode, status, page, limit, includeDeleted, deletedOnly, sortBy, sortOrder]
   );
   const requestKey = useMemo(
     () => buildProjectsParams(resolvedOptions).toString(),

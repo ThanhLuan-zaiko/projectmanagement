@@ -31,6 +31,7 @@ export default function ProjectsWorkspaceClient() {
   const ownedProjectsState = useProjects({
     scope: 'owned',
     search: urlFilters.search,
+    searchMode: 'name',
     status: urlFilters.filters.status || 'all',
     page: urlFilters.page,
     limit: urlFilters.limit,
@@ -41,6 +42,7 @@ export default function ProjectsWorkspaceClient() {
   const memberProjectsState = useProjects({
     scope: 'member',
     search: urlFilters.search,
+    searchMode: 'name',
     status: urlFilters.filters.status || 'all',
     page: memberPage,
     limit: memberLimit,
@@ -99,31 +101,6 @@ export default function ProjectsWorkspaceClient() {
             <span>Create project</span>
           </Link>
         }
-      />
-
-      <ProjectFilters
-        search={urlFilters.search}
-        status={urlFilters.filters.status || 'all'}
-        sortBy={urlFilters.sortBy}
-        sortOrder={urlFilters.sortOrder}
-        isRefreshing={workspaceBusy}
-        onSearchChange={(value) => {
-          setMemberPage(1);
-          urlFilters.setSearch(value);
-        }}
-        onStatusChange={(value) => {
-          setMemberPage(1);
-          urlFilters.setFilter('status', value);
-        }}
-        onSortByChange={(value) => {
-          setMemberPage(1);
-          urlFilters.setSort(value, urlFilters.sortOrder);
-        }}
-        onSortOrderChange={(value) => {
-          setMemberPage(1);
-          urlFilters.setSort(urlFilters.sortBy, value);
-        }}
-        onRefresh={refreshAll}
       />
 
       <ProjectsBentoGrid gridClassName="grid-cols-1 xl:grid-cols-6">
@@ -213,6 +190,32 @@ export default function ProjectsWorkspaceClient() {
           </div>
         </ProjectsBentoCard>
       </ProjectsBentoGrid>
+
+      <ProjectFilters
+        search={urlFilters.search}
+        searchPlaceholder="Search by project name"
+        status={urlFilters.filters.status || 'all'}
+        sortBy={urlFilters.sortBy}
+        sortOrder={urlFilters.sortOrder}
+        isRefreshing={workspaceBusy}
+        onSearchChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSearch(value);
+        }}
+        onStatusChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setFilter('status', value);
+        }}
+        onSortByChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSort(value, urlFilters.sortOrder);
+        }}
+        onSortOrderChange={(value) => {
+          setMemberPage(1);
+          urlFilters.setSort(urlFilters.sortBy, value);
+        }}
+        onRefresh={refreshAll}
+      />
 
       <ProjectList
         title="Owned projects"

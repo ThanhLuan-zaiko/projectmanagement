@@ -10,6 +10,7 @@ export interface ProjectListItem extends Project {
 export interface ProjectPortfolioOptions {
   scope?: 'owned' | 'member' | 'all';
   search?: string;
+  searchMode?: 'all' | 'name';
   status?: string;
   includeDeleted?: boolean;
   deletedOnly?: boolean;
@@ -29,14 +30,19 @@ export interface ProjectPortfolioResult {
   hasPrevPage: boolean;
 }
 
-function matchesSearch(project: Project, search: string) {
+function matchesSearch(project: Project, search: string, searchMode: 'all' | 'name' = 'all') {
   const normalizedSearch = search.trim().toLowerCase();
 
   if (!normalizedSearch) {
     return true;
   }
 
-  return [project.project_name, project.project_code, project.description]
+  const searchableValues =
+    searchMode === 'name'
+      ? [project.project_name]
+      : [project.project_name, project.project_code, project.description];
+
+  return searchableValues
     .filter(Boolean)
     .some((value) => value.toLowerCase().includes(normalizedSearch));
 }
@@ -92,7 +98,7 @@ function filterProjects(projects: ProjectListItem[], options: ProjectPortfolioOp
         ? true
         : project.status === options.status;
 
-    return matchesDeleted && matchesStatus && matchesSearch(project, options.search || '');
+    return matchesDeleted && matchesStatus && matchesSearch(project, options.search || '', options.searchMode);
   });
 }
 
@@ -145,7 +151,7 @@ export async function getProjectPortfolio(
   options: ProjectPortfolioOptions = {}
 ): Promise<ProjectPortfolioResult> {
   const scope = options.scope || 'all';
-  const page = Math.max(options.page || 1, 1);
+  const requestedPage = Math.max(options.page || 1, 1);
   const limit = Math.max(options.limit || 6, 1);
   const sortBy = options.sortBy || 'updated_at';
   const sortOrder = options.sortOrder || 'desc';
@@ -165,6 +171,7 @@ export async function getProjectPortfolio(
   const sortedItems = [...allItems].sort((a, b) => compareProjects(a, b, sortBy, sortOrder));
   const total = sortedItems.length;
   const totalPages = Math.max(Math.ceil(total / limit), 1);
+  const page = Math.min(requestedPage, totalPages);
   const offset = (page - 1) * limit;
 
   return {

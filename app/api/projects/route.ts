@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const includeDeleted = searchParams.get('include_deleted') === 'true';
     const deletedOnly = searchParams.get('deleted_only') === 'true';
     const search = searchParams.get('search') || '';
+    const searchMode = (searchParams.get('search_mode') || 'all') as 'all' | 'name';
     const status = searchParams.get('status') || 'all';
     const sortBy = searchParams.get('sort_by') || 'updated_at';
     const sortOrder = (searchParams.get('sort_order') || 'desc') as 'asc' | 'desc';
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       includeDeleted,
       deletedOnly,
       search,
+      searchMode,
       status,
       sortBy,
       sortOrder,
