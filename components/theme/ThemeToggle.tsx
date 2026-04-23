@@ -1,16 +1,19 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 import { FiMoon, FiSun } from 'react-icons/fi';
 import { useTheme } from './ThemeProvider';
 
 export default function ThemeToggle() {
+  const pathname = usePathname();
   const { theme, preference, toggleTheme } = useTheme();
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
   );
+  const isAuthPage = pathname.startsWith('/auth');
   const isLightMode = theme === 'light';
   const isFollowingSystem = preference === 'system';
   const displayLightMode = mounted && isLightMode;
@@ -31,6 +34,8 @@ export default function ThemeToggle() {
         aria-label={buttonLabel}
         title={buttonLabel}
         className={`theme-fab pointer-events-auto group flex items-center gap-3 rounded-full px-2.5 py-2.5 backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 2xl:px-3 2xl:py-3 ${
+          isAuthPage ? 'theme-fab-auth' : ''
+        } ${
           mounted ? 'opacity-100 translate-y-0' : 'translate-y-2 opacity-0'
         }`}
       >
@@ -43,26 +48,26 @@ export default function ThemeToggle() {
           <span className="relative z-10 flex w-full items-center justify-between px-1.5">
             <FiMoon
               className={`h-4 w-4 transition-colors duration-300 ${
-                displayLightMode ? 'text-slate-500' : 'text-slate-950'
+                displayLightMode ? 'theme-toggle-icon-muted' : 'theme-toggle-icon-active'
               }`}
             />
             <FiSun
               className={`h-4 w-4 transition-colors duration-300 ${
-                displayLightMode ? 'text-slate-950' : 'text-slate-500'
+                displayLightMode ? 'theme-toggle-icon-active' : 'theme-toggle-icon-muted'
               }`}
             />
           </span>
         </span>
 
         <span className="hidden min-w-0 text-left 2xl:block">
-          <span className="block text-[11px] font-medium uppercase tracking-[0.24em] text-slate-400">
+          <span className="theme-fab-label block text-[11px] font-medium uppercase tracking-[0.24em]">
             Theme
           </span>
-          <span className="mt-0.5 block text-sm font-semibold text-white">
+          <span className="theme-fab-value mt-0.5 block text-sm font-semibold">
             {mounted ? (displayLightMode ? 'Light mode' : 'Dark mode') : 'Theme'}
           </span>
           {mounted && isFollowingSystem && (
-            <span className="mt-0.5 block text-xs text-slate-500">
+            <span className="theme-fab-hint mt-0.5 block text-xs">
               Following system by default
             </span>
           )}

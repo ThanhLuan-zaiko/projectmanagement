@@ -1,4 +1,4 @@
-import { FiMail, FiLock, FiUser, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiLock, FiMail, FiPhone, FiUser } from 'react-icons/fi';
 import { FormData, FormErrors } from './types';
 
 interface AuthFormFieldsProps {
@@ -18,131 +18,146 @@ export default function AuthFormFields({
   onTogglePassword,
   onChange,
 }: AuthFormFieldsProps) {
+  const inputClasses = (hasError: boolean, hasAction = false) =>
+    `auth-input w-full rounded-2xl border py-3.5 text-sm transition-all ${
+      hasAction ? 'pl-12 pr-12' : 'pl-12 pr-4'
+    } ${hasError ? 'auth-input-error' : ''}`;
+
   return (
     <>
-      {/* Email Field */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
-          Email Address
+        <label htmlFor="email" className="auth-copy-strong mb-2 block text-sm font-medium">
+          Email address
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FiMail className="w-5 h-5 text-slate-400" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <FiMail className="auth-input-icon h-5 w-5" />
           </div>
           <input
+            id="email"
             type="email"
             name="email"
             value={formData.email}
             onChange={onChange}
-            className={`w-full pl-12 pr-4 py-3 bg-white/5 border ${
-              errors.email ? 'border-red-400' : 'border-white/10'
-            } rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            aria-invalid={Boolean(errors.email)}
+            className={inputClasses(Boolean(errors.email))}
             placeholder="your@email.com"
           />
         </div>
-        {errors.email && <p className="mt-2 text-sm text-red-400">{errors.email}</p>}
+        {errors.email && <p className="auth-field-error mt-2 text-sm">{errors.email}</p>}
       </div>
 
-      {/* Username Field (Register Only) */}
       {mode === 'register' && (
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
+          <label htmlFor="username" className="auth-copy-strong mb-2 block text-sm font-medium">
             Username
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FiUser className="w-5 h-5 text-slate-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <FiUser className="auth-input-icon h-5 w-5" />
             </div>
             <input
+              id="username"
               type="text"
               name="username"
               value={formData.username}
               onChange={onChange}
-              className={`w-full pl-12 pr-4 py-3 bg-white/5 border ${
-                errors.username ? 'border-red-400' : 'border-white/10'
-              } rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
+              required
+              aria-invalid={Boolean(errors.username)}
+              className={inputClasses(Boolean(errors.username))}
               placeholder="johndoe"
             />
           </div>
-          {errors.username && <p className="mt-2 text-sm text-red-400">{errors.username}</p>}
+          {errors.username && <p className="auth-field-error mt-2 text-sm">{errors.username}</p>}
         </div>
       )}
 
-      {/* Full Name Field (Register Only) */}
       {mode === 'register' && (
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Full Name
+          <label htmlFor="full_name" className="auth-copy-strong mb-2 block text-sm font-medium">
+            Full name
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FiUser className="w-5 h-5 text-slate-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <FiUser className="auth-input-icon h-5 w-5" />
             </div>
             <input
+              id="full_name"
               type="text"
               name="full_name"
               value={formData.full_name}
               onChange={onChange}
-              className={`w-full pl-12 pr-4 py-3 bg-white/5 border ${
-                errors.full_name ? 'border-red-400' : 'border-white/10'
-              } rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+              autoComplete="name"
+              required
+              aria-invalid={Boolean(errors.full_name)}
+              className={inputClasses(Boolean(errors.full_name))}
               placeholder="John Doe"
             />
           </div>
-          {errors.full_name && <p className="mt-2 text-sm text-red-400">{errors.full_name}</p>}
+          {errors.full_name && <p className="auth-field-error mt-2 text-sm">{errors.full_name}</p>}
         </div>
       )}
 
-      {/* Phone Field (Register Only) */}
       {mode === 'register' && (
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Phone Number <span className="text-slate-500">(Optional)</span>
+          <label htmlFor="phone" className="auth-copy-strong mb-2 block text-sm font-medium">
+            Phone number <span className="auth-muted">(Optional)</span>
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FiPhone className="w-5 h-5 text-slate-400" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <FiPhone className="auth-input-icon h-5 w-5" />
             </div>
             <input
+              id="phone"
               type="tel"
               name="phone"
               value={formData.phone}
               onChange={onChange}
-              className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              autoComplete="tel"
+              className={inputClasses(false)}
               placeholder="+84 123 456 789"
             />
           </div>
         </div>
       )}
 
-      {/* Password Field */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-2">
+        <label htmlFor="password" className="auth-copy-strong mb-2 block text-sm font-medium">
           Password
         </label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FiLock className="w-5 h-5 text-slate-400" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <FiLock className="auth-input-icon h-5 w-5" />
           </div>
           <input
+            id="password"
             type={showPassword ? 'text' : 'password'}
             name="password"
             value={formData.password}
             onChange={onChange}
-            className={`w-full pl-12 pr-12 py-3 bg-white/5 border ${
-              errors.password ? 'border-red-400' : 'border-white/10'
-            } rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
-            placeholder="••••••••"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            required
+            aria-invalid={Boolean(errors.password)}
+            className={inputClasses(Boolean(errors.password), true)}
+            placeholder="Enter your password"
           />
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors"
+            className="auth-input-button absolute inset-y-0 right-0 flex items-center pr-4 transition-colors"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
+            {showPassword ? <FiEyeOff className="h-5 w-5" /> : <FiEye className="h-5 w-5" />}
           </button>
         </div>
-        {errors.password && <p className="mt-2 text-sm text-red-400">{errors.password}</p>}
+        {errors.password && <p className="auth-field-error mt-2 text-sm">{errors.password}</p>}
       </div>
     </>
   );

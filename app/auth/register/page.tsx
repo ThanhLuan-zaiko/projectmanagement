@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FiUserPlus, FiLoader, FiAlertCircle } from 'react-icons/fi';
+import { FiAlertCircle, FiLoader, FiUserPlus } from 'react-icons/fi';
 import AuthLayout from '../AuthLayout';
 import AuthFormFields from '../AuthFormFields';
 import AuthAlert from '../AuthAlert';
@@ -71,22 +71,19 @@ export default function RegisterPage() {
 
       if (!response.ok || !data.success) {
         setError(data.error || 'An error occurred');
-        
-        // Handle password validation errors
+
         if (data.passwordErrors && Array.isArray(data.passwordErrors)) {
           setPasswordErrors(data.passwordErrors);
         } else {
           setPasswordErrors([]);
         }
-        
+
         return;
       }
 
       setPasswordErrors([]);
-
       setSuccess('Registration successful! Redirecting to projects...');
 
-      // Redirect to projects page to create/select a project
       setTimeout(() => {
         window.location.href = '/projects';
       }, 1500);
@@ -107,24 +104,23 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Create Account"
-      subtitle="Fill in your details to get started"
+      title="Create your account"
+      subtitle="Set up secure access for your project workspace and start planning."
     >
       <AuthAlert type="error" message={error} />
       <AuthAlert type="success" message={success} />
 
-      {/* Password Requirements */}
       {passwordErrors.length > 0 && (
-        <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-          <div className="flex items-start space-x-3">
-            <FiAlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+        <div className="auth-warning-panel mb-6 rounded-2xl border p-4">
+          <div className="flex items-start gap-3">
+            <FiAlertCircle className="auth-warning-icon mt-0.5 h-5 w-5 shrink-0" />
             <div className="flex-1">
-              <p className="text-yellow-300 text-sm font-medium mb-2">Password requirements:</p>
-              <ul className="space-y-1">
+              <p className="auth-copy-strong mb-2 text-sm font-semibold">Password requirements</p>
+              <ul className="space-y-1.5">
                 {passwordErrors.map((err, idx) => (
-                  <li key={idx} className="text-yellow-300/80 text-sm flex items-start">
-                    <span className="mr-2">•</span>
-                    {err}
+                  <li key={idx} className="auth-warning-text flex items-start gap-2 text-sm">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-current/70" />
+                    <span>{err}</span>
                   </li>
                 ))}
               </ul>
@@ -143,35 +139,30 @@ export default function RegisterPage() {
           onChange={handleChange}
         />
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center space-x-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="auth-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
-              <FiLoader className="w-5 h-5 animate-spin" />
+              <FiLoader className="h-5 w-5 animate-spin" />
               <span>Please wait...</span>
             </>
           ) : (
             <>
-              <FiUserPlus className="w-5 h-5" />
-              <span>Create Account</span>
+              <FiUserPlus className="h-5 w-5" />
+              <span>Create account</span>
             </>
           )}
         </button>
       </form>
 
-      {/* Switch to Login */}
       <div className="mt-6 text-center">
-        <p className="text-slate-400">
+        <p className="auth-muted text-sm">
           {'Already have an account?'}{' '}
-          <Link
-            href="/auth/login"
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-          >
-            Sign In
+          <Link href="/auth/login" className="auth-link font-semibold transition-colors">
+            Sign in
           </Link>
         </p>
       </div>

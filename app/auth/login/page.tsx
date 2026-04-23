@@ -93,8 +93,8 @@ function LoginForm() {
 
   return (
     <AuthLayout
-      title="Welcome Back"
-      subtitle="Sign in to continue to your dashboard"
+      title="Welcome back"
+      subtitle="Sign in to continue to your projects, schedules, and team updates."
     >
       <AuthAlert type="error" message={error} />
       <AuthAlert type="success" message={success} />
@@ -113,7 +113,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center space-x-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="auth-button-primary flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold transition-all disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
@@ -131,13 +131,13 @@ function LoginForm() {
 
       {/* Switch to Register */}
       <div className="mt-6 text-center">
-        <p className="text-slate-400">
+        <p className="auth-muted text-sm">
           {"Don't have an account?"}{' '}
           <Link
             href="/auth/register"
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            className="auth-link font-semibold transition-colors"
           >
-            Sign Up
+            Sign up
           </Link>
         </p>
       </div>
@@ -147,7 +147,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="auth-shell auth-muted flex min-h-[100dvh] items-center justify-center px-6 text-sm">
+          Loading sign-in...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
